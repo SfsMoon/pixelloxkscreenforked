@@ -1,25 +1,31 @@
 package my.github.MrxSiN.pixellockscreenevolved.clock.poster
 
 import android.content.Context
+import android.graphics.BitmapShader
 import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.Matrix
 import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.Rect
+import android.graphics.Shader
 import android.graphics.Typeface
 import android.view.View
 
 import kotlin.math.ceil
 
+import my.github.MrxSiN.pixellockscreenevolved.clock.Backdrop
+
 /**
  * The time on one line, the hours then the minutes with no separator, each
- * run drawn in its own [GlyphLook], in a [PosterFont].
+ * run drawn in its own [GlyphLook], in a [PosterFont] at the figure height and
+ * weight chosen, and stretched across as chosen.
  *
  * The figures are drawn from their outlines rather than as text, so an outline
- * keeps one width around every stroke at any size and glass can light the
- * figures' own edges. The view is exactly as tall as the figures plus room for
- * the glass's glow and shadow, so a face can stack it tightly under its date.
- * Every digit is sized as the widest, so the line keeps its size whichever
+ * keeps one width around every stroke at any size and glass can light and bend
+ * through the figures' own edges. The view is exactly as tall as the figures
+ * plus room for the glass's shadow, so a face can stack it tightly under its
+ * date. Every digit is sized as the widest, so the line keeps its size whichever
  * minute it shows.
  */
 internal class PosterTimeView(context: Context, private val font: PosterFont, typeface: Typeface) : View(context) {
@@ -29,6 +35,7 @@ internal class PosterTimeView(context: Context, private val font: PosterFont, ty
     private val minutes = GlyphRun()
     private val figures = Rect()
     private val hairline = context.resources.displayMetrics.density * HAIRLINE_DP
+    private val stretching = Matrix()
 
     private var hourText = ""
     private var minuteText = ""
@@ -37,14 +44,24 @@ internal class PosterTimeView(context: Context, private val font: PosterFont, ty
     private var color = Color.WHITE
     private var doze = 0f
 
+    /** The figure height and weight, each from 0 to 1 across the font's range, and how much wider than designed they are drawn. */
+    private var heightShare = font.heights.initialShare
+    private var weightShare = font.weights.initialShare
+    private var stretch = 1f
+
     /** How opaque the figures are drawn, from 0 to 1. */
     private var opacity = 1f
+
+    /** The photo behind, and its shader, made once per photo and placed again on every draw. */
+    private var backdrop: Backdrop? = null
+    private var backdropShader: BitmapShader? = null
+    private val backdropToView = Matrix()
 
     /** The figures' top against the baseline, and their height, at the text size in use. */
     private var figuresTop = 0f
     private var figuresHeight = 0f
 
-    /** How wide the line is drawn, and the room kept around it for glow and shadow. */
+    /** How wide the line is drawn, and the room kept around it for glass's shadow. */
     private var lineWidth = 0f
     private var inset = 0
 
@@ -59,8 +76,19 @@ internal class PosterTimeView(context: Context, private val font: PosterFont, ty
 
     /** Sets the figures [numeralHeight] pixels tall, or smaller where the line would be wider than [maxWidth]. */
     fun fit(numeralHeight: Float, maxWidth: Float) {
+        if (numeralHeight == this.numeralHeight && maxWidth == this.maxWidth) return
         this.numeralHeight = numeralHeight
         this.maxWidth = maxWidth
+        resize()
+        requestLayout()
+    }
+
+    /** Sets the font's figure [height] and [weight], each from 0 to 1 across its range, and how much wider than designed it is drawn. */
+    fun setCut(height: Float, weight: Float, stretch: Float) {
+        if (height == heightShare && weight == weightShare && stretch == this.stretch) return
+        heightShare = height
+        weightShare = weight
+        this.stretch = stretch
         resize()
         requestLayout()
     }
@@ -69,6 +97,7 @@ internal class PosterTimeView(context: Context, private val font: PosterFont, ty
         if (hours.look == hour && minutes.look == minute) return
         hours.look = hour
         minutes.look = minute
+        prepare(reshaped = false)
         invalidate()
     }
 
@@ -82,7 +111,7 @@ internal class PosterTimeView(context: Context, private val font: PosterFont, ty
     fun setColor(color: Int) {
         if (color == this.color) return
         this.color = color
-        prepare()
+        prepare(reshaped = true)
         invalidate()
     }
 
@@ -95,6 +124,13 @@ internal class PosterTimeView(context: Context, private val font: PosterFont, ty
         invalidate()
     }
 
+    fun setBackdrop(backdrop: Backdrop?) {
+        if (backdrop === this.backdrop) return
+        this.backdrop = backdrop
+        backdropShader = backdrop?.let { BitmapShader(it.picture, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP) }
+        invalidate()
+    }
+
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         val width = ceil(lineWidth).toInt() + 2 * inset
         val height = ceil(figuresHeight).toInt() + 2 * inset
@@ -104,20 +140,36 @@ internal class PosterTimeView(context: Context, private val font: PosterFont, ty
     override fun onDraw(canvas: Canvas) {
         if (opacity <= 0f) return
         val layer = if (opacity < 1f) canvas.saveLayerAlpha(0f, 0f, width.toFloat(), height.toFloat(), (opacity * 255).toInt()) else canvas.save()
-        canvas.translate((width - lineWidth) / 2, inset - figuresTop)
-        hours.draw(canvas, doze)
-        minutes.draw(canvas, doze)
+        val left = (width - lineWidth) / 2
+        val top = inset - figuresTop
+        canvas.translate(left, top)
+        val behind = placedBackdrop(left, top)
+        hours.draw(canvas, doze, behind)
+        minutes.draw(canvas, doze, behind)
         canvas.restoreToCount(layer)
+    }
+
+    /** The photo behind, placed in the units the figures are drawn in, shifted by [left] and [top] from the view's own; or null. */
+    private fun placedBackdrop(left: Float, top: Float): Shader? {
+        val shader = backdropShader ?: return null
+        if (backdrop?.place(this, backdropToView) != true) return null
+        backdropToView.postTranslate(-left, -top)
+        shader.setLocalMatrix(backdropToView)
+        return shader
     }
 
     /** Sets the text size for [numeralHeight] and [maxWidth] in the awake cut, and outlines the figures again. */
     private fun resize() {
-        paint.fontVariationSettings = font.settings(0f)
+        paint.fontVariationSettings = awakeCut()
         paint.textSize = PROBE_SIZE
         paint.getTextBounds(DIGITS, 0, DIGITS.length, figures)
         val heightPerSize = figures.height() / PROBE_SIZE
-        val widthPerSize = (measureWidest(hourText) + gapPerSize() + measureWidest(minuteText)) / PROBE_SIZE
-        val size = minOf(numeralHeight / heightPerSize, if (widthPerSize > 0f) maxWidth / widthPerSize else Float.MAX_VALUE)
+        val widthPerSize = (measureWidest(hourText) + gapPerSize() + measureWidest(minuteText)) * stretch / PROBE_SIZE
+        val size = if (heightPerSize > 0f) {
+            minOf(numeralHeight / heightPerSize, if (widthPerSize > 0f) maxWidth / widthPerSize else Float.MAX_VALUE)
+        } else {
+            1f
+        }
         paint.textSize = size.coerceAtLeast(1f)
         paint.getTextBounds(DIGITS, 0, DIGITS.length, figures)
         figuresTop = figures.top.toFloat()
@@ -128,38 +180,44 @@ internal class PosterTimeView(context: Context, private val font: PosterFont, ty
 
     /** Outlines both runs in the cut shown now, placed by the awake cut's advances so nothing shifts as it thins. */
     private fun outline() {
-        paint.fontVariationSettings = font.settings(0f)
+        paint.fontVariationSettings = awakeCut()
         val hourWidth = paint.measureText(hourText)
         val gap = gapPerSize() * paint.textSize / PROBE_SIZE
-        lineWidth = hourWidth + gap + paint.measureText(minuteText)
+        lineWidth = (hourWidth + gap + paint.measureText(minuteText)) * stretch
         val hourAdvances = advances(hourText)
         val minuteAdvances = advances(minuteText)
-        paint.fontVariationSettings = font.settings(doze)
+        paint.fontVariationSettings = font.settings(heightShare, weightShare, doze)
+        stretching.setScale(stretch, 1f)
         outline(hours, hourText, hourAdvances, 0f)
         outline(minutes, minuteText, minuteAdvances, hourWidth + gap)
-        paint.fontVariationSettings = font.settings(0f)
-        prepare()
+        paint.fontVariationSettings = awakeCut()
+        // The glass's height field follows the awake figures; while dozing only its rim is drawn.
+        prepare(reshaped = doze == 0f)
     }
 
-    /** Each glyph of [text] centred in the awake cut's advance, from [start]. */
+    /** Each glyph of [text] centred in the awake cut's advance, from [start], stretched across. */
     private fun outline(run: GlyphRun, text: String, advances: FloatArray, start: Float) {
         run.path.reset()
         var left = start
+        val glyph = Path()
         text.indices.forEach { index ->
             val offset = (advances[index] - paint.measureText(text, index, index + 1)) / 2
-            val glyph = Path()
+            glyph.reset()
             paint.getTextPath(text, index, index + 1, left + offset, 0f, glyph)
             run.path.addPath(glyph)
             left += advances[index]
         }
+        if (stretch != 1f) run.path.transform(stretching)
     }
 
     private fun advances(text: String): FloatArray = FloatArray(text.length) { paint.measureText(text, it, it + 1) }
 
-    private fun prepare() {
-        hours.prepare(color, figuresHeight, hairline)
-        minutes.prepare(color, figuresHeight, hairline)
+    private fun prepare(reshaped: Boolean) {
+        hours.prepare(color, figuresHeight, hairline, reshaped)
+        minutes.prepare(color, figuresHeight, hairline, reshaped)
     }
+
+    private fun awakeCut(): String = font.settings(heightShare, weightShare, doze = 0f)
 
     /** [text] measured with every digit as the widest, in the awake cut at [PROBE_SIZE]. */
     private fun measureWidest(text: String): Float {
@@ -187,7 +245,7 @@ internal class PosterTimeView(context: Context, private val font: PosterFont, ty
         /** Space between the hours and the minutes, against one digit's advance. */
         const val GAP_TO_DIGIT = 0.08f
 
-        /** Room around the figures for glass's glow and shadow, against their height. */
+        /** Room around the figures for glass's shadow, against their height. */
         const val ROOM_TO_HEIGHT = 0.04f
 
         /** The thinnest an outline or rim is drawn, so it never breaks up on a small face. */

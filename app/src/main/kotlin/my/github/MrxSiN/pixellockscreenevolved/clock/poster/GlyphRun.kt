@@ -15,12 +15,14 @@ import my.github.MrxSiN.pixellockscreenevolved.clock.parts.DozeInk
  * One run of figures (the hours, or the minutes) as outlines, and the paint
  * that draws them in their [GlyphLook].
  *
- * Glass is built from the figures' own outline, as frosted glass reads on a
- * photo: a faint tinted body, brighter at the top; a soft glow inside the edges,
- * lit from the top left and catching light again at the bottom right; a crisp
- * rim; and a soft shadow under it, so the figures lift off the photo. On the
- * always-on display the body, glow and shadow fade with the doze, leaving the
- * rim, so few pixels stay lit.
+ * Glass shows the photo behind it where there is one ([LiquidGlass]), with a
+ * crisp rim and a soft shadow under it, so the figures lift off the photo.
+ * Where there is none (a live wallpaper, a preview of another photo, the
+ * picker's own list) it is drawn from the figures' outline alone, as frosted
+ * glass reads on a photo: a faint tinted body, brighter at the top, and a soft
+ * glow inside the edges, lit from the top left and catching light again at the
+ * bottom right. On the always-on display all but the rim fades with the doze,
+ * so few pixels stay lit.
  *
  * Gradients depend on where the figures stand and their colour, so they are
  * built when either changes ([prepare]), not on every draw.
@@ -49,6 +51,7 @@ internal class GlyphRun {
     private val sheen = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL }
     private val shadow = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL }
     private val shadowPath = Path()
+    private val liquid = LiquidGlass()
 
     private var shadowDrop = 0f
     private var sheenBottom = 0f
@@ -56,8 +59,9 @@ internal class GlyphRun {
     /**
      * Settles every paint for the figures as they stand now, drawn in [color],
      * [numeralHeight] pixels tall, at least [hairline] pixels wide for a line.
+     * The glass's height field is built again only with [reshaped] figures.
      */
-    fun prepare(color: Int, numeralHeight: Float, hairline: Float) {
+    fun prepare(color: Int, numeralHeight: Float, hairline: Float, reshaped: Boolean) {
         path.computeBounds(bounds, true)
         val h = numeralHeight.coerceAtLeast(1f)
         fill.color = color
@@ -83,22 +87,30 @@ internal class GlyphRun {
         shadowDrop = h * SHADOW_DROP_TO_HEIGHT
         shadowPath.set(path)
         shadowPath.offset(0f, shadowDrop)
+        if (look != GlyphLook.GLASS) liquid.clear() else if (reshaped || !liquid.isReady) liquid.prepare(path, bounds, h, color)
     }
 
-    /** Draws the figures, [doze] of the way into the always-on display. */
-    fun draw(canvas: Canvas, doze: Float) {
+    /**
+     * Draws the figures, [doze] of the way into the always-on display, glass
+     * through [backdrop], the photo behind placed in the canvas's units, where there is one.
+     */
+    fun draw(canvas: Canvas, doze: Float, backdrop: Shader?) {
         when (look) {
             GlyphLook.FILLED -> canvas.drawPath(path, fill)
             GlyphLook.OUTLINE -> canvas.drawPath(path, line)
-            GlyphLook.GLASS -> drawGlass(canvas, 1f - doze.coerceIn(0f, 1f))
+            GlyphLook.GLASS -> drawGlass(canvas, 1f - doze.coerceIn(0f, 1f), backdrop)
         }
     }
 
-    /** Glass, its body, glow and shadow at [presence] of their strength. */
-    private fun drawGlass(canvas: Canvas, presence: Float) {
+    /** Glass, all but its rim at [presence] of their strength. */
+    private fun drawGlass(canvas: Canvas, presence: Float, backdrop: Shader?) {
         if (presence > 0f) {
             shadow.alpha = (SHADOW * presence * 255).toInt()
             canvas.drawPath(shadowPath, shadow)
+        }
+        if (presence > 0f && backdrop != null && liquid.isReady) {
+            liquid.draw(canvas, path, backdrop, presence)
+        } else if (presence > 0f) {
             body.alpha = (presence * 255).toInt()
             canvas.drawPath(path, body)
             canvas.save()
@@ -109,6 +121,7 @@ internal class GlyphRun {
             canvas.drawRect(bounds.left, bounds.top, bounds.right, sheenBottom, sheen)
             canvas.restore()
         }
+        rim.alpha = if (backdrop != null && liquid.isReady) ((LIQUID_RIM + (1f - LIQUID_RIM) * (1f - presence)) * 255).toInt() else 255
         canvas.drawPath(path, rim)
     }
 
@@ -147,6 +160,9 @@ internal class GlyphRun {
         const val SHEEN = 0.16f
 
         const val SHADOW = 0.22f
+
+        /** Over the photo the bevel already catches the light, so the rim is fainter until the doze leaves it alone. */
+        const val LIQUID_RIM = 0.55f
         const val SHADOW_BLUR_TO_HEIGHT = 0.02f
         const val SHADOW_DROP_TO_HEIGHT = 0.012f
 

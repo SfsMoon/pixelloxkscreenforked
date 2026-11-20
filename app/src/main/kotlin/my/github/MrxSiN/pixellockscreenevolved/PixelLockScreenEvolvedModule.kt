@@ -30,6 +30,7 @@ import my.github.MrxSiN.pixellockscreenevolved.hook.HostPatch
 import my.github.MrxSiN.pixellockscreenevolved.hook.XposedHooks
 import my.github.MrxSiN.pixellockscreenevolved.hook.forFeature
 import my.github.MrxSiN.pixellockscreenevolved.host.ClockRegistryInjector
+import my.github.MrxSiN.pixellockscreenevolved.host.GlassBackdrop
 import my.github.MrxSiN.pixellockscreenevolved.host.KeyguardAodWallpaper
 import my.github.MrxSiN.pixellockscreenevolved.host.KeyguardClockLayout
 import my.github.MrxSiN.pixellockscreenevolved.host.KeyguardSmallClockBand
@@ -194,11 +195,15 @@ class PixelLockScreenEvolvedModule : XposedModule() {
         return when (host) {
             Host.SYSTEMUI -> {
                 val depth = gate.allows(Feature.DEPTH_EFFECT)
+                val clocks = gate.allows(Feature.CLOCK_STYLES)
                 val aod = gate.allows(Feature.AOD_WALLPAPER)
                 val previewWallpapers = KeyguardPreviewWallpapers(hooksFor(Feature.DEPTH_EFFECT), logger)
                 val wallpaperFeed = LockWallpaperFeed(hooks, logger)
                 val aodWallpaper = KeyguardAodWallpaper(hooksFor(Feature.AOD_WALLPAPER), wallpaperFeed, logger)
                 val depthEffect = KeyguardDepthEffect(wallpaperFeed, moduleApplicationInfo.packageName, previewWallpapers, logger)
+                // Glass shows the lock screen photo through the clock whatever else is on.
+                val glass = GlassBackdrop(wallpaperFeed, previewWallpapers)
+                wallpaperFeed.addListener(glass)
                 if (aod) wallpaperFeed.addListener(aodWallpaper)
                 if (depth) {
                     wallpaperFeed.addListener(depthEffect)
@@ -216,6 +221,7 @@ class PixelLockScreenEvolvedModule : XposedModule() {
                             onRegistry = onRegistry,
                             reloadedRegistry = reloadedRegistry,
                             onClockCreated = { clock ->
+                                glass.track(clock)
                                 if (depth) depthEffect.track(clock)
                                 if (aod) aodWallpaper.track(clock)
                                 if (gate.allows(Feature.CLOCK_SIZE_MOTION)) sizeMotion.track(clock)
@@ -226,8 +232,8 @@ class PixelLockScreenEvolvedModule : XposedModule() {
                     gate.gate(Feature.SMARTSPACE_PLACEMENT, KeyguardSmartspacePlacement(hooksFor(Feature.SMARTSPACE_PLACEMENT), styles, logger)),
                     gate.gate(Feature.SMARTSPACE_PLACEMENT, KeyguardSmallClockBand(hooksFor(Feature.SMARTSPACE_PLACEMENT), logger)),
                     gate.gate(Feature.CLOCK_SIZE_MOTION, sizeMotion),
-                    previewWallpapers.takeIf { depth },
-                    wallpaperFeed.takeIf { depth || aod },
+                    previewWallpapers.takeIf { depth || clocks },
+                    wallpaperFeed.takeIf { depth || aod || clocks },
                     aodWallpaper.takeIf { aod }?.let { gate.gate(Feature.AOD_WALLPAPER, it) },
                     gate.gate(Feature.DOUBLE_TAP_TO_SLEEP, KeyguardDoubleTapToSleep(hooksFor(Feature.DOUBLE_TAP_TO_SLEEP), logger)),
                 )

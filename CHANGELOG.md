@@ -12,6 +12,20 @@
   other styles. Glass is drawn from the figures' own outline (tinted body,
   lit edges, gloss and shadow); it does not blur the wallpaper behind it. The
   figures thin on the always-on display, where glass keeps only its rim.
+- Glass on the Poster clocks shows the lock screen photo through the figures
+  (`GlassBackdrop`, `LiquidGlass`): the photo, blurred once per photo, is bent
+  over each figure's bevel by an AGSL shader reading a height field built from
+  the figures' outline, and lit at the edges. Over a live wallpaper or a preview
+  of another photo it falls back to the drawn glass.
+- Height, Weight and Width sliders for the Poster clocks: the fonts' `HGHT` and
+  `wght` axes, and a stretch across from 60% to 160%.
+
+### Fixed
+
+- The Poster clocks stood off centre, to the right, and could be cut at the
+  screen's edge: they were laid out in the clock element's narrower box. They
+  now span the screen as the iOS clock does (`WideColumn`, shared with it,
+  and `EdgeToEdgeClockFace`).
 
 ## 0.0.8 — 2026-11-12
 

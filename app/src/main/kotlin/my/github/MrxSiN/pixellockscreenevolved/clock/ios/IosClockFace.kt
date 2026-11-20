@@ -21,6 +21,7 @@ import my.github.MrxSiN.pixellockscreenevolved.clock.ResizableClockFace
 import my.github.MrxSiN.pixellockscreenevolved.clock.ClockWeather
 import my.github.MrxSiN.pixellockscreenevolved.clock.WeatherClockFace
 import my.github.MrxSiN.pixellockscreenevolved.clock.parts.DateLine
+import my.github.MrxSiN.pixellockscreenevolved.clock.parts.WideColumn
 
 /**
  * The iOS clock: the date and weather over a large, centred time.
@@ -40,8 +41,7 @@ internal class IosClockFace(
 
     private val info: DateLine? = if (showsInfo) DateLine(context, DATE) else null
 
-    override val view: View = WideFace(context).apply {
-        orientation = LinearLayout.VERTICAL
+    override val view: View = WideColumn(context).apply {
         // The small face is given the band the lock screen lays its own small clock out in, and sits in the middle of it.
         gravity = if (showsInfo) Gravity.CENTER_HORIZONTAL else Gravity.CENTER
         layoutParams = ViewGroup.LayoutParams(WRAP, WRAP)
@@ -122,37 +122,6 @@ internal class IosClockFace(
     }
 
     private fun dp(value: Float): Float = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, value, context.resources.displayMetrics)
-
-    /**
-     * The face's column, as wide and as tall as the time it holds even where that is wider
-     * than the room its host lays it out in ([EdgeToEdgeClockFace]): the lock
-     * screen's clock element is narrower than the screen. Drawn whole rather
-     * than clipped to that room (the depth effect draws the face as one layer,
-     * which ends at the face's bounds), and kept centred on it: a host that
-     * puts it at its start, as the scene's view holder does, has it moved back
-     * by half the overflow.
-     */
-    private class WideFace(context: Context) : LinearLayout(context) {
-        init {
-            // A rolling digit may pass a little beyond the time's own box.
-            clipChildren = false
-            clipToPadding = false
-        }
-
-        override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
-            // As tall as the time asks too: the scene's clock box is shorter than the largest sizes, and the
-            // depth effect's layer, which ends at the face's bounds, would cut the numerals off at its edge.
-            val unbounded = MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED)
-            super.onMeasure(unbounded, unbounded)
-        }
-
-        override fun onLayout(changed: Boolean, l: Int, t: Int, r: Int, b: Int) {
-            super.onLayout(changed, l, t, r, b)
-            val room = (parent as? View)?.width ?: return
-            val shift = if (left == 0 && width > room) (room - width) / 2f else 0f
-            if (translationX != shift) translationX = shift
-        }
-    }
 
     private companion object {
         const val WRAP = ViewGroup.LayoutParams.WRAP_CONTENT

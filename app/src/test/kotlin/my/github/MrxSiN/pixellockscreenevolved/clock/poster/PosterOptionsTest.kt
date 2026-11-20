@@ -9,7 +9,7 @@ class PosterOptionsTest {
     @Test
     fun eachFontStartsInItsOwnLooksAndFullyOpaque() {
         PosterFont.entries.forEach { font ->
-            val (hour, minute, opacity) = PosterOptions.of(font)
+            val (hour, minute, opacity) = PosterOptions.of(font).take(3)
             assertEquals(font.hourLook, PosterOptions.lookOf(hour.defaultStep))
             assertEquals(font.minuteLook, PosterOptions.lookOf(minute.defaultStep))
             assertEquals(1f, PosterOptions.opacityOf(opacity.defaultStep), 0f)
@@ -37,10 +37,30 @@ class PosterOptionsTest {
 
     @Test
     fun dozeThinsTheWeightAndKeepsTheHeight() {
-        val awake = PosterFont.TALL.settings(0f)
-        val dozing = PosterFont.TALL.settings(1f)
-        assertEquals("'HGHT' 1000.0, 'wght' 1000.0", awake)
-        assertEquals("'HGHT' 1000.0, 'wght' 220.0", dozing)
+        assertEquals("'HGHT' 1000.0, 'wght' 1000.0", PosterFont.TALL.settings(height = 1f, weight = 1f, doze = 0f))
+        assertEquals("'HGHT' 1000.0, 'wght' 220.0", PosterFont.TALL.settings(height = 1f, weight = 1f, doze = 1f))
         assertNotEquals(PosterFont.TALL.id, PosterFont.BOLD.id)
+    }
+
+    @Test
+    fun aWeightAlreadyLighterThanTheDozeCutIsNotMadeHeavierWhileDozing() {
+        assertEquals("'HGHT' 100.0, 'wght' 100.0", PosterFont.TALL.settings(height = 0f, weight = 0f, doze = 1f))
+    }
+
+    @Test
+    fun axisSlidersStartWhereEachFontIsDesignedAndSpanItsRange() {
+        val bold = PosterOptions.of(PosterFont.BOLD).associateBy { it.key }
+        assertEquals(5, bold.getValue(PosterOptions.HEIGHT_KEY).defaultStep)
+        assertEquals("0", bold.getValue(PosterOptions.HEIGHT_KEY).values.first())
+        assertEquals("1000", bold.getValue(PosterOptions.HEIGHT_KEY).values.last())
+        assertEquals(0.5f, PosterOptions.axisShareOf(5), 1e-6f)
+    }
+
+    @Test
+    fun theWidthSliderStartsAtTheDesignedWidth() {
+        val stretch = PosterOptions.of(PosterFont.TALL).single { it.key == PosterOptions.STRETCH_KEY }
+        assertEquals(1f, PosterOptions.stretchOf(stretch.defaultStep), 1e-6f)
+        assertEquals(0.6f, PosterOptions.stretchOf(0), 1e-6f)
+        assertEquals(1.6f, PosterOptions.stretchOf(99), 1e-6f)
     }
 }
