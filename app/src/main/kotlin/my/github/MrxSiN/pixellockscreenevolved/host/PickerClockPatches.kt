@@ -53,7 +53,7 @@ internal class PickerClockPatches(
         val positionTab = if (!position) null else runCatching { PickerPositionTab(classLoader, state, logger) }
             .onFailure { logger.warn("Clock sheet tabs not found; the clock cannot be positioned", it) }
             .getOrNull()
-        val glass = PickerGlassBackdrop(logger)
+        val glass = StoredWallpaperGlass(logger, StoredWallpaperGlass.PREVIEW)
         val clocksDrawn = { context: Context ->
             FeatureAvailability.current(SnapshotStore(context.contentResolver), HostStartupReport.bootedAt())
                 .isAvailable(Feature.CLOCK_STYLES)

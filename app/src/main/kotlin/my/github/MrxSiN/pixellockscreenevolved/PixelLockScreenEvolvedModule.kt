@@ -202,7 +202,7 @@ class PixelLockScreenEvolvedModule : XposedModule() {
                 val aodWallpaper = KeyguardAodWallpaper(hooksFor(Feature.AOD_WALLPAPER), wallpaperFeed, logger)
                 val depthEffect = KeyguardDepthEffect(wallpaperFeed, moduleApplicationInfo.packageName, previewWallpapers, logger)
                 // Glass shows the lock screen photo through the clock whatever else is on.
-                val glass = GlassBackdrop(wallpaperFeed, previewWallpapers)
+                val glass = GlassBackdrop(wallpaperFeed, previewWallpapers, logger)
                 wallpaperFeed.addListener(glass)
                 if (aod) wallpaperFeed.addListener(aodWallpaper)
                 if (depth) {

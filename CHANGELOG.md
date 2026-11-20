@@ -48,6 +48,13 @@
 
 ### Fixed
 
+- Glass showed the photo where the clock last stood while it was dragged or
+  moved across: the figures now draw again before any frame they have moved
+  in (`PosterTimeView`).
+- Glass on the lock screen fell back to the drawn glass until another
+  wallpaper was set, as SystemUI does not draw the same photo again: the
+  wallpaper as stored is shown until then (`StoredWallpaperGlass`, which the
+  picker's preview uses too).
 - The Poster clocks stood off centre, to the right, and could be cut at the
   screen's edge: they were laid out in the clock element's narrower box. They
   now span the screen as the iOS clock does (`WideColumn`, shared with it,

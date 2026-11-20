@@ -13,6 +13,7 @@ import java.util.concurrent.Executors
 
 import my.github.MrxSiN.pixellockscreenevolved.clock.Backdrop
 import my.github.MrxSiN.pixellockscreenevolved.clock.BackdropClockFace
+import my.github.MrxSiN.pixellockscreenevolved.core.Logger
 
 /**
  * The lock screen photo behind every face that draws through it
@@ -30,7 +31,11 @@ import my.github.MrxSiN.pixellockscreenevolved.clock.BackdropClockFace
 internal class GlassBackdrop(
     private val feed: LockWallpaperFeed,
     private val previews: KeyguardPreviewWallpapers,
+    logger: Logger,
 ) : LockWallpaperFeed.Listener {
+
+    /** The wallpaper as stored, shown until SystemUI draws its photo again. */
+    private val stored = StoredWallpaperGlass(logger, StoredWallpaperGlass.LOCK_SCREEN)
 
     private val faces = Collections.synchronizedMap(WeakHashMap<ClockFaceAdapter, Follower>())
     private val main = Handler(Looper.getMainLooper())
@@ -51,9 +56,12 @@ internal class GlassBackdrop(
                 faces[face] = follower
                 follower.show(photo)
             }
-            // The photo is handed on only as SystemUI draws one it has not drawn before; one drawn before this
-            // module was loaded, or reloaded, is asked for again, and comes with the next draw, as the screen wakes.
-            if (photo == null) feed.forgetPhoto()
+            // The photo is handed on only as SystemUI draws one it has not drawn before, and the same photo is
+            // not drawn again until another is set: until then the wallpaper as stored is shown, laid out by default.
+            if (photo == null) {
+                feed.forgetPhoto()
+                stored.track(clock) { photo == null && !previews.showsOtherWallpaper(clock.controller) }
+            }
         }
     }
 

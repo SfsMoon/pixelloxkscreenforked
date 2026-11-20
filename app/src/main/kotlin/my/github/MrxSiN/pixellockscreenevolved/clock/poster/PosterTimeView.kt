@@ -11,6 +11,7 @@ import android.graphics.Rect
 import android.graphics.Shader
 import android.graphics.Typeface
 import android.view.View
+import android.view.ViewTreeObserver
 
 import kotlin.math.ceil
 
@@ -66,6 +67,24 @@ internal class PosterTimeView(context: Context, private val font: PosterFont, ty
     private var frostedShader: BitmapShader? = null
     private val sharpToView = Matrix()
     private val frostedToView = Matrix()
+
+    /** Where the view stood in its window when it was last drawn over the photo, to tell when it has moved since. */
+    private val drawnAt = Matrix()
+    private val standsAt = Matrix()
+
+    /**
+     * Draws the view again before any frame it has moved in, while it shows the
+     * photo: the glass must bend what is behind it now, and moving a view, as a
+     * drag or a stretch across does, does not draw it again by itself.
+     */
+    private val followMoves = ViewTreeObserver.OnPreDrawListener {
+        if (backdrop != null) {
+            standsAt.reset()
+            transformMatrixToGlobal(standsAt)
+            if (standsAt != drawnAt) invalidate()
+        }
+        true
+    }
 
     /** The figures' top against the baseline, and their height, at the text size in use. */
     private var figuresTop = 0f
@@ -157,6 +176,16 @@ internal class PosterTimeView(context: Context, private val font: PosterFont, ty
         invalidate()
     }
 
+    override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
+        viewTreeObserver.addOnPreDrawListener(followMoves)
+    }
+
+    override fun onDetachedFromWindow() {
+        viewTreeObserver.removeOnPreDrawListener(followMoves)
+        super.onDetachedFromWindow()
+    }
+
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         val width = ceil(lineWidth).toInt() + 2 * inset
         val height = ceil(figuresHeight).toInt() + 2 * inset
@@ -182,6 +211,8 @@ internal class PosterTimeView(context: Context, private val font: PosterFont, ty
         val behind = backdrop ?: return false
         val sharp = sharpShader ?: return false
         val frosted = frostedShader ?: return false
+        drawnAt.reset()
+        transformMatrixToGlobal(drawnAt)
         if (!behind.place(this, sharpToView)) return false
         sharpToView.postTranslate(-left, -top)
         sharp.setLocalMatrix(sharpToView)
