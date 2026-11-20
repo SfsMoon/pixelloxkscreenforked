@@ -94,16 +94,18 @@ internal class PosterTimeView(context: Context, private val font: PosterFont, ty
     /**
      * How wide the line's ink is, where it starts from the first glyph's
      * origin, and the room kept around it for glass's shadow. The line is
-     * centred by its ink, not by the font's advances: a heavy cut of these fonts
-     * leaves more room beside some figures than others, and centred by advance
-     * the time stood off to one side of the date above it. Measured awake, and
-     * kept while dozing, so the line does not slide as its strokes thin.
+     * centred by the ink of the widest time it can show, every figure a 0, as
+     * other systems centre their big clocks: not by the font's advances, which
+     * a heavy cut of these fonts overruns on one side, so the time stood off to
+     * one side of the date above it; and not by the ink of the figures shown,
+     * which would slide the line each minute a narrow 1 comes or goes. Measured
+     * awake, and kept while dozing, so the line does not slide as its strokes thin.
      */
     private var lineWidth = 0f
     private var inkLeft = 0f
     private var inkMeasured = false
     private val ink = RectF()
-    private val runInk = RectF()
+    private val widest = Path()
     private var inset = 0
 
     fun setTime(hour: String, minute: String) {
@@ -267,16 +269,24 @@ internal class PosterTimeView(context: Context, private val font: PosterFont, ty
         outline(hours, hourText, hourAdvances, 0f)
         outline(minutes, minuteText, minuteAdvances, hourWidth + gap)
         paint.fontVariationSettings = awakeCut()
-        if (doze == 0f || !inkMeasured) measureInk(fallbackWidth = (hourWidth + gap + paint.measureText(minuteText)) * scaleX)
+        if (doze == 0f || !inkMeasured) measureInk(gap, fallbackWidth = (hourWidth + gap + paint.measureText(minuteText)) * scaleX)
         // The glass's height field follows the awake figures; while dozing only its rim is drawn.
         prepare(reshaped = doze == 0f)
     }
 
-    /** Takes the width and start of both runs' ink together, or of [fallbackWidth] from the origin where there is none. */
-    private fun measureInk(fallbackWidth: Float) {
-        hours.path.computeBounds(ink, true)
-        minutes.path.computeBounds(runInk, true)
-        if (ink.isEmpty) ink.set(runInk) else if (!runInk.isEmpty) ink.union(runInk)
+    /**
+     * Takes the width and start of the ink of the widest time, every figure a
+     * 0, laid out as the time is with [gap] between hours and minutes, in the
+     * awake cut; or of [fallbackWidth] from the origin where it has none.
+     */
+    private fun measureInk(gap: Float, fallbackWidth: Float) {
+        val hour = hourText.map { if (it.isDigit()) WIDE_DIGIT else it }.joinToString("")
+        val minute = minuteText.map { if (it.isDigit()) WIDE_DIGIT else it }.joinToString("")
+        widest.reset()
+        outlineInto(widest, hour, advances(hour), 0f)
+        outlineInto(widest, minute, advances(minute), paint.measureText(hour) + gap)
+        if (scaleX != 1f || scaleY != 1f) widest.transform(stretching)
+        widest.computeBounds(ink, true)
         if (ink.isEmpty) {
             inkLeft = 0f
             lineWidth = fallbackWidth
@@ -290,17 +300,23 @@ internal class PosterTimeView(context: Context, private val font: PosterFont, ty
     /** Each glyph of [text] centred in the awake cut's advance, from [start], stretched across. */
     private fun outline(run: GlyphRun, text: String, advances: FloatArray, start: Float) {
         run.path.reset()
+        outlineInto(run.path, text, advances, start)
+        if (scaleX != 1f || scaleY != 1f) run.path.transform(stretching)
+    }
+
+    /** Adds each glyph of [text] to [path], centred in [advances], from [start], in the cut [paint] is set to. */
+    private fun outlineInto(path: Path, text: String, advances: FloatArray, start: Float) {
         var left = start
-        val glyph = Path()
         text.indices.forEach { index ->
             val offset = (advances[index] - paint.measureText(text, index, index + 1)) / 2
             glyph.reset()
             paint.getTextPath(text, index, index + 1, left + offset, 0f, glyph)
-            run.path.addPath(glyph)
+            path.addPath(glyph)
             left += advances[index]
         }
-        if (scaleX != 1f || scaleY != 1f) run.path.transform(stretching)
     }
+
+    private val glyph = Path()
 
     private fun advances(text: String): FloatArray = FloatArray(text.length) { paint.measureText(text, it, it + 1) }
 

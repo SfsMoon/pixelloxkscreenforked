@@ -64,8 +64,10 @@
 
 - Poster Bold stood off to the right of the date above it, by about 3% of
   its width: a heavy cut of the font runs its figures past their advance on
-  the right. The time is now centred by its ink, measured awake and kept
-  while dozing (`PosterTimeView`).
+  the right. The time is now centred by the ink of the widest time it can
+  show, every figure a 0, as other systems centre their big clocks: it no
+  longer slides as a narrow 1 comes or goes, and it is measured awake and
+  kept while dozing (`PosterTimeView`).
 - Glass showed the photo where the clock last stood while it was dragged or
   moved across: the figures now draw again before any frame they have moved
   in (`PosterTimeView`).
