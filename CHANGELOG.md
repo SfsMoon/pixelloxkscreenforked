@@ -41,6 +41,15 @@
 
 ### Changed
 
+- Poster clocks stay where they stand awake on the always-on display
+  (`ClockStyle.keepsPlaceOnAod`), lifted clear of the fingerprint sensor,
+  rather than going where SystemUI puts its own clock.
+- The Poster small clock, shown above notifications, is larger and starts at
+  the lock screen's text margin, where SystemUI starts the date line under
+  it, as a Pixel's own small clock does (`MarginColumn`); it was centred
+  over a date line that starts at the margin.
+- A Poster clock can be stretched from a fifth to six times its fitted width
+  or height.
 - Stretching a Poster clock by its corners follows the finger one to one
   with the opposite corner held still, snaps to natural proportions with a
   tick, and no longer shrinks the time once it is wider than the screen: the

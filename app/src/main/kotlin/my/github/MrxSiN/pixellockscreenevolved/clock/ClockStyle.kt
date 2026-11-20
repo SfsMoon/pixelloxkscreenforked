@@ -50,6 +50,13 @@ interface ClockStyle {
     val isMovable: Boolean get() = true
 
     /**
+     * Whether the large face stays where it stands awake on the always-on
+     * display, rather than going where SystemUI puts its own clock there. It is
+     * still lifted clear of the fingerprint sensor.
+     */
+    val keepsPlaceOnAod: Boolean get() = false
+
+    /**
      * Stepped choices this style offers beyond its size, width and position,
      * each shown as a slider in Wallpaper & style. The faces of a style with any
      * implement [ConfigurableClockFace].

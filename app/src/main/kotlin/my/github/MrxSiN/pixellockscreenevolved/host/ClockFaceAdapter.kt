@@ -37,6 +37,8 @@ internal class ClockFaceAdapter(
     movable: Boolean,
     /** The style's own choices ([ClockStyle.options]), read from the axes as the size is. */
     private val options: List<ClockOption>,
+    /** Whether the large face keeps its awake place on the always-on display ([ClockStyle.keepsPlaceOnAod]). */
+    keepsPlaceOnAod: Boolean,
     /** The host's own context, for whatever places the face against what SystemUI lays out around it. */
     val context: Context,
     initialTheme: Any,
@@ -64,7 +66,7 @@ internal class ClockFaceAdapter(
     /** Where the large face stands awake. */
     val clockLayout = ClockLayout(face.view, movable = movable && size == FaceSize.LARGE)
 
-    private val placement = ClockFacePlacement(api.viewId(size), size, LockScreenInsets.largeClockTop(context), clockLayout)
+    private val placement = ClockFacePlacement(api.viewId(size), size, LockScreenInsets.largeClockTop(context), clockLayout, keepsPlaceOnAod)
 
     /**
      * This face as the lock screen scene composes it, or null on a build whose

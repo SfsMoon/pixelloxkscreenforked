@@ -34,6 +34,8 @@ internal class ClockFacePlacement(
     private val largeClockTop: Int,
     /** Where the large face stands awake within the band under [largeClockTop]. */
     private val layout: ClockLayout,
+    /** Whether the large face keeps its awake place on the always-on display ([ClockStyle.keepsPlaceOnAod]). */
+    private val keepsPlaceOnAod: Boolean = false,
 ) {
 
     /** Where the face is drawn, measured again before each draw. */
@@ -162,10 +164,10 @@ internal class ClockFacePlacement(
         if (scale <= 0f) return
         if (doze == 0f) reportRestingScale(view, scale)
         val awakePin = view.translationY + (awakeTop(view, doze) - drawn.top) / scale
-        var pinned = AodClockMotion.placementCorrection(awakePin, doze)
+        var pinned = if (keepsPlaceOnAod) awakePin else AodClockMotion.placementCorrection(awakePin, doze)
         if (doze > 0f) {
-            // SystemUI's always-on place is made for its own clock; a taller face would reach down to the
-            // fingerprint sensor there, so it is lifted to stand above the lock screen's floor.
+            // SystemUI's always-on place is made for its own clock, and a face kept in its awake place may stand
+            // anywhere; one that would reach down to the fingerprint sensor is lifted to stand above the floor.
             val bottom = drawn.bottom + (pinned - view.translationY) * scale
             val floor = LockScreenFloor.of(view)
             if (bottom > floor) pinned -= (bottom - floor) / scale

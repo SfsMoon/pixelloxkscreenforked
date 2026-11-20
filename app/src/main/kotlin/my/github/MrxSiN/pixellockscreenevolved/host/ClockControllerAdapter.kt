@@ -129,6 +129,7 @@ internal class ClockControllerAdapter(
         sizeSteps = style.sizeSteps,
         movable = style.isMovable,
         options = style.options,
+        keepsPlaceOnAod = style.keepsPlaceOnAod,
         context = context,
         initialTheme = initialTheme,
     )

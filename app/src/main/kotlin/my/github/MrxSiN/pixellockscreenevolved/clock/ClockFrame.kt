@@ -19,8 +19,8 @@ data class ClockFrame(val scaleX: Float = 1f, val scaleY: Float = 1f, val shiftX
     companion object {
         val NATURAL = ClockFrame()
 
-        const val MIN_SCALE = 0.4f
-        const val MAX_SCALE = 2.5f
+        const val MIN_SCALE = 0.2f
+        const val MAX_SCALE = 6f
         const val MAX_SHIFT = 0.5f
 
         /** The frame stored [scaleX], [scaleY] and [shiftX] axis values choose; a value never stored is natural. */

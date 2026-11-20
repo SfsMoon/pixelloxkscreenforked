@@ -33,6 +33,7 @@ import my.github.MrxSiN.pixellockscreenevolved.clock.ResizableClockFace
 import my.github.MrxSiN.pixellockscreenevolved.clock.WeatherClockFace
 import my.github.MrxSiN.pixellockscreenevolved.clock.parts.ClockThumbnail
 import my.github.MrxSiN.pixellockscreenevolved.clock.parts.DateLine
+import my.github.MrxSiN.pixellockscreenevolved.clock.parts.MarginColumn
 import my.github.MrxSiN.pixellockscreenevolved.clock.parts.TimeParts
 import my.github.MrxSiN.pixellockscreenevolved.clock.parts.WideColumn
 
@@ -52,6 +53,9 @@ class PosterClockStyle(private val font: PosterFont, private val fonts: FontSour
     override val name: String = font.title
     override val description: String = font.description
     override val isResizable: Boolean = true
+
+    /** Placed and stretched by hand, the clock stays where it was put as the display dozes. */
+    override val keepsPlaceOnAod: Boolean = true
     override val options: List<ClockOption> = PosterOptions.of(font)
 
     override fun createFace(context: Context, size: FaceSize): ClockFace = Face(context, size, typeface(context))
@@ -103,13 +107,15 @@ class PosterClockStyle(private val font: PosterFont, private val fonts: FontSour
         /** How much smaller than laid out the host draws the face ([setDrawnScale]). */
         private var drawnScale = 1f
 
-        private val column = WideColumn(context)
+        /** The large face's column, which a person may move across; the small face keeps to the lock screen's margin. */
+        private val column = WideColumn(context).takeIf { size == FaceSize.LARGE }
 
-        override val view: View = column.apply {
-            gravity = Gravity.CENTER_HORIZONTAL
+        override val view: View = (column ?: MarginColumn(context)).apply {
+            if (column != null) gravity = Gravity.CENTER_HORIZONTAL
             layoutParams = ViewGroup.LayoutParams(WRAP, WRAP)
-            date?.let { addView(it.view, LinearLayout.LayoutParams(WRAP, WRAP).apply { gravity = Gravity.CENTER_HORIZONTAL }) }
-            addView(time, LinearLayout.LayoutParams(WRAP, WRAP).apply { gravity = Gravity.CENTER_HORIZONTAL })
+            val across = if (column != null) Gravity.CENTER_HORIZONTAL else Gravity.START
+            date?.let { addView(it.view, LinearLayout.LayoutParams(WRAP, WRAP).apply { gravity = across }) }
+            addView(time, LinearLayout.LayoutParams(WRAP, WRAP).apply { gravity = across })
         }
         override val timeView: View get() = time
         override val drawsDate: Boolean get() = date != null
@@ -147,7 +153,7 @@ class PosterClockStyle(private val font: PosterFont, private val fonts: FontSour
             val sized = shortSide * (font.smallest + (font.largest - font.smallest) * size.coerceIn(0f, 1f))
             time.fit(sized, maxWidth = columnWidth())
             time.setScale(frame.scaleX, frame.scaleY)
-            column.shift = frame.shiftX * windowWidth() / drawnScale
+            column?.shift = frame.shiftX * windowWidth() / drawnScale
             (time.layoutParams as? ViewGroup.MarginLayoutParams)?.let {
                 it.topMargin = (shortSide * DATE_GAP).toInt()
                 time.layoutParams = it
@@ -212,9 +218,12 @@ class PosterClockStyle(private val font: PosterFont, private val fonts: FontSour
         /** The least change of the scene's scale worth fitting the line again for. */
         const val SCALE_STEP = 0.005f
 
-        /** The small face, beside notifications: a little taller than a Pixel small clock, as its figures are narrow. */
-        const val SMALL_TO_SHORT_SIDE = 0.16f
-        const val SMALL_MAX_WIDTH = 0.6f
+        /**
+         * The small face, above notifications: taller than a Pixel small clock, as its figures are narrow, and
+         * starting where SystemUI's date line under it starts ([MarginColumn]).
+         */
+        const val SMALL_TO_SHORT_SIDE = 0.22f
+        const val SMALL_MAX_WIDTH = 0.8f
 
         /** Space between the date and the figures, against the short side. */
         const val DATE_GAP = 0.015f
