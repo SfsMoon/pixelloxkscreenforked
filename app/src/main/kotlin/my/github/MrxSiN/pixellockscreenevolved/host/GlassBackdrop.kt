@@ -39,7 +39,7 @@ internal class GlassBackdrop(
     /** The photo as the faces draw it, and the size of the surface it is stretched to; on the main thread. */
     private var photo: Photo? = null
 
-    private class Photo(val picture: Bitmap, val surface: WallpaperPlacement.Size)
+    private class Photo(val pictures: GlassPhoto.Pictures, val surface: WallpaperPlacement.Size)
 
     /** Shows the photo through every face of [clock] that draws through one. */
     fun track(clock: ClockControllerAdapter) {
@@ -61,7 +61,7 @@ internal class GlassBackdrop(
         // The engine may let its photo go once this returns, so the small copy is made now and blurred later.
         val small = GlassPhoto.shrink(photo) ?: return
         worker.execute {
-            val blurred = GlassPhoto.blur(small)
+            val blurred = GlassPhoto.pictures(small)
             main.post {
                 val next = Photo(blurred, surface)
                 this.photo = next
@@ -110,7 +110,9 @@ internal class GlassBackdrop(
         /** [photo], placed on screen as the wallpaper is. */
         private inner class Placed(private val photo: Photo) : Backdrop {
 
-            override val picture: Bitmap get() = photo.picture
+            override val picture: Bitmap get() = photo.pictures.sharp
+
+            override val frosted: Bitmap get() = photo.pictures.frosted
 
             private val viewToWindow = Matrix()
             private val rootToWindow = Matrix()

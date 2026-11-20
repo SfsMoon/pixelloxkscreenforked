@@ -41,8 +41,8 @@ internal class PickerClockSliders(
 
     private val styles = styles.associateBy { it.id }
 
-    /** Every option any style offers, once per key: styles sharing a key share its slider. */
-    private val optionKeys = styles.flatMap { it.options }.map { it.key }.distinct()
+    /** Every option any style offers, once per key, with the tab it is shown in: styles sharing a key share its slider. */
+    private val optionTabs: Map<String, ClockOption.Tab> = styles.flatMap { it.options }.distinctBy { it.key }.associate { it.key to it.tab }
 
     override fun install(classLoader: ClassLoader) {
         val sliders = try {
@@ -90,11 +90,22 @@ internal class PickerClockSliders(
             tag = SIZE_LABEL
             addView(size.row)
         }
-        val options = optionKeys.mapNotNull { key -> optionRow(sliders, sheet, key, presetSlider)?.also { rows.addView(it.row.row) } }
+        // Glass has a tab of its own where this module can add tabs; elsewhere its sliders join the size's.
+        val glassRows = if (positionTab != null && ClockOption.Tab.GLASS in optionTabs.values) {
+            LinearLayout(context).apply { orientation = LinearLayout.VERTICAL }
+        } else {
+            null
+        }
+        val options = optionTabs.mapNotNull { (key, tab) ->
+            optionRow(sliders, sheet, key, presetSlider)?.also {
+                (if (tab == ClockOption.Tab.GLASS && glassRows != null) glassRows else rows).addView(it.row.row)
+            }
+        }
         var steps = 0
         var optionsShownFor: ClockStyle? = null
         val onStyle = { style: ClockStyle? ->
             positionTab?.isAvailable = style?.isMovable == true
+            positionTab?.isGlassAvailable = glassRows != null && style?.options?.any { it.tab == ClockOption.Tab.GLASS } == true
             if (style !== optionsShownFor) {
                 optionsShownFor = style
                 options.forEach { it.showFor(style) }
@@ -107,7 +118,7 @@ internal class PickerClockSliders(
                 sliders.configure(size.slider, 0f, last, 1f, (state.chosenSizeStep ?: storedSizeStep()).coerceAtMost(last))
             }
         }
-        PickerSizeTab(sizeContent, rows, position, largeSwitch, sliders, previewed, state, onStyle, logger)
+        PickerSizeTab(sizeContent, rows, position, glassRows, largeSwitch, sliders, previewed, state, onStyle, logger)
     }
 
     /** A slider row for the option stored under [key], for whichever style is previewed. */

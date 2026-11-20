@@ -5,13 +5,16 @@ import android.graphics.Matrix
 import android.view.View
 
 /**
- * The lock screen photo behind a face, softened for glass to show through, and
- * where it stands on screen at this moment.
+ * The lock screen photo behind a face, for glass to show through, nearly sharp
+ * and frosted, and where it stands on screen at this moment.
  */
 interface Backdrop {
 
-    /** The photo, blurred and small; a face may draw it, never change or recycle it. */
+    /** The photo, small and nearly sharp; a face may draw it, never change or recycle it. */
     val picture: Bitmap
+
+    /** The same photo blurred as frosted glass softens it, at any size, covering what [picture] covers. */
+    val frosted: Bitmap
 
     /**
      * Sets [toView] to map [picture]'s pixels onto [view]'s own as the photo

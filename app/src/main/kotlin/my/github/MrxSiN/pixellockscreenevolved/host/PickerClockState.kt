@@ -137,23 +137,30 @@ internal class PickerClockState(private val api: ClockPluginApi) {
     /** The position shown now: the one chosen since the picker opened, or the stored one. */
     fun shownPosition(): ClockPosition = chosenPosition ?: storedPosition()
 
-    /**
-     * Whether the clock sheet's Position tab is open, so the preview's clock
-     * can be dragged; [onPositionEditing] hears each change.
-     */
+    /** The tabs this module adds to the clock sheet, riding on its Size tab's slot ([PickerPositionTab]). */
+    enum class SheetTab { POSITION, GLASS }
+
+    /** Which of this module's tabs is open, or null while the picker's own are; [onTabChanged] hears each change. */
     @Volatile
-    var isEditingPosition = false
+    var openTab: SheetTab? = null
         set(value) {
             if (field == value) return
             field = value
-            editingListeners.forEach { it(value) }
+            tabListeners.forEach { it(value) }
         }
 
-    private val editingListeners = mutableListOf<(Boolean) -> Unit>()
+    /** Whether the clock sheet's Position tab is open, so the preview's clock can be dragged. */
+    var isEditingPosition: Boolean
+        get() = openTab == SheetTab.POSITION
+        set(value) {
+            openTab = if (value) SheetTab.POSITION else openTab.takeUnless { it == SheetTab.POSITION }
+        }
 
-    /** Calls [listener] whenever the Position tab opens or closes from now on. */
-    fun onPositionEditing(listener: (Boolean) -> Unit) {
-        editingListeners.add(listener)
+    private val tabListeners = mutableListOf<(SheetTab?) -> Unit>()
+
+    /** Calls [listener] whenever one of this module's tabs opens or closes from now on. */
+    fun onTabChanged(listener: (SheetTab?) -> Unit) {
+        tabListeners.add(listener)
     }
 
     /** Forgets a size or position chosen earlier, as a newly opened picker should. */
@@ -162,7 +169,7 @@ internal class PickerClockState(private val api: ClockPluginApi) {
         chosenPosition = null
         chosenOptions.clear()
         chosenFrame = null
-        isEditingPosition = false
+        openTab = null
     }
 
     /** The value the setting in effect stores for [key], or null when it stores none. */

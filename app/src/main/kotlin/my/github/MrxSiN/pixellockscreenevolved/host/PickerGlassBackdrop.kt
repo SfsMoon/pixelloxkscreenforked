@@ -33,7 +33,7 @@ internal class PickerGlassBackdrop(private val logger: Logger) {
     private val worker = Executors.newSingleThreadExecutor()
 
     /** The photo read last, and the wallpaper it was read for; written on the main thread, read on the worker. */
-    @Volatile private var photo: Bitmap? = null
+    @Volatile private var photo: GlassPhoto.Pictures? = null
     @Volatile private var photoId = NONE
 
     /** Shows the lock screen photo through every face of [clock] that draws through one. */
@@ -55,7 +55,7 @@ internal class PickerGlassBackdrop(private val logger: Logger) {
     }
 
     /** The lock screen wallpaper's id and its blurred photo, read again only when another one is set; or null to keep the last. */
-    private fun read(context: Context): Pair<Int, Bitmap>? = runCatching {
+    private fun read(context: Context): Pair<Int, GlassPhoto.Pictures>? = runCatching {
         val manager = WallpaperManager.getInstance(context)
         val lockId = manager.getWallpaperId(WallpaperManager.FLAG_LOCK)
         val which = if (lockId > 0) WallpaperManager.FLAG_LOCK else WallpaperManager.FLAG_SYSTEM
@@ -64,11 +64,15 @@ internal class PickerGlassBackdrop(private val logger: Logger) {
         val drawable: Drawable = manager.getDrawable(which) ?: return null
         val bitmap = (drawable as? BitmapDrawable)?.bitmap ?: return null
         val small = GlassPhoto.shrink(bitmap) ?: return null
-        id to GlassPhoto.blur(small)
+        id to GlassPhoto.pictures(small)
     }.onFailure { logger.warn("The lock screen wallpaper could not be read for the clock's glass", it) }.getOrNull()
 
-    /** [picture] laid over the preview the face stands in, filling it and cropped about its middle. */
-    private class Placed(override val picture: Bitmap) : Backdrop {
+    /** The pictures laid over the preview the face stands in, filling it and cropped about its middle. */
+    private class Placed(pictures: GlassPhoto.Pictures) : Backdrop {
+
+        override val picture: Bitmap = pictures.sharp
+
+        override val frosted: Bitmap = pictures.frosted
 
         private val previewToWindow = Matrix()
         private val viewToWindow = Matrix()

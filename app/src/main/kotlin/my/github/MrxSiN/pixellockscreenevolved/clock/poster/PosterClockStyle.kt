@@ -97,6 +97,7 @@ class PosterClockStyle(private val font: PosterFont, private val fonts: FontSour
         private var heightShare = font.heights.initialShare
         private var weightShare = font.weights.initialShare
         private var frame = ClockFrame.NATURAL
+        private var glass = GlassLook()
         private var shownSize = 0f
 
         /** How much smaller than laid out the host draws the face ([setDrawnScale]). */
@@ -144,7 +145,8 @@ class PosterClockStyle(private val font: PosterFont, private val fonts: FontSour
                 return
             }
             val sized = shortSide * (font.smallest + (font.largest - font.smallest) * size.coerceIn(0f, 1f))
-            time.fit(sized * frame.scaleY, maxWidth = columnWidth())
+            time.fit(sized, maxWidth = columnWidth())
+            time.setScale(frame.scaleX, frame.scaleY)
             column.shift = frame.shiftX * windowWidth() / drawnScale
             (time.layoutParams as? ViewGroup.MarginLayoutParams)?.let {
                 it.topMargin = (shortSide * DATE_GAP).toInt()
@@ -166,7 +168,6 @@ class PosterClockStyle(private val font: PosterFont, private val fonts: FontSour
         override fun setFrame(frame: ClockFrame) {
             if (size == FaceSize.SMALL || frame == this.frame) return
             this.frame = frame
-            time.setCut(heightShare, weightShare, frame.scaleX)
             setSize(shownSize)
         }
 
@@ -193,10 +194,13 @@ class PosterClockStyle(private val font: PosterFont, private val fonts: FontSour
                 PosterOptions.OPACITY_KEY -> return time.setOpacity(PosterOptions.opacityOf(step))
                 PosterOptions.HEIGHT_KEY -> heightShare = PosterOptions.axisShareOf(step)
                 PosterOptions.WEIGHT_KEY -> weightShare = PosterOptions.axisShareOf(step)
-                else -> return
+                else -> {
+                    glass = glass.with(key, step) ?: return
+                    return time.setGlass(glass)
+                }
             }
             time.setLooks(hourLook, minuteLook)
-            time.setCut(heightShare, weightShare, frame.scaleX)
+            time.setCut(heightShare, weightShare)
         }
     }
 

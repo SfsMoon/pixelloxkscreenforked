@@ -48,6 +48,8 @@ grep -q 'WIDTH_KEY = "PIXEL_LOCK_SCREEN_EVOLVED_WIDTH"' "$SRC/host/ClockAxes.kt"
 ! grep -qE '^import android' "$SRC/clock/ClockOption.kt"
 ! grep -qE '^import android' "$SRC/clock/poster/PosterOptions.kt"
 ! grep -qE '^import android' "$SRC/clock/poster/PosterFont.kt"
+! grep -qE '^import android' "$SRC/clock/poster/GlassLook.kt"
+! grep -qE '^import android' "$SRC/clock/ClockFrame.kt"
 
 # The Roboto Flex clocks use the system's font; only the Poster clocks ship theirs.
 [ "$(ls "$ROOT/app/src/main/assets/fonts")" = "$(printf 'poster_bold.ttf\nposter_tall.ttf')" ]

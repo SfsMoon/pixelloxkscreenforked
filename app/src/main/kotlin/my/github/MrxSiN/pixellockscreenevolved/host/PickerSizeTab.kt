@@ -36,6 +36,8 @@ internal class PickerSizeTab(
     private val content: ViewGroup,
     private val rows: View,
     private val positionRows: View?,
+    /** The Glass tab's sliders, or null where there is no Glass tab. */
+    private val glassRows: View?,
     private val largeSwitch: CompoundButton?,
     private val sliders: PickerSliderApi,
     private val previewed: () -> ClockStyle?,
@@ -48,7 +50,7 @@ internal class PickerSizeTab(
     private val originalRows = (0 until content.childCount).map(content::getChildAt)
     private var heightFailureReported = false
     private var shown: ClockStyle? = null
-    private var shownEditing = false
+    private var shownTab: PickerClockState.SheetTab? = null
     private var shownOnce = false
     private var recordedHeight = -1
     private var heightGlide: ValueAnimator? = null
@@ -56,7 +58,8 @@ internal class PickerSizeTab(
     init {
         content.addView(rows, topParams())
         positionRows?.let { content.addView(it, topParams()) }
-        state.onPositionEditing { showFor(previewed()) }
+        glassRows?.let { content.addView(it, topParams()) }
+        state.onTabChanged { showFor(previewed()) }
         content.viewTreeObserver.addOnGlobalLayoutListener {
             showFor(previewed())
             keepHeight()
@@ -66,25 +69,32 @@ internal class PickerSizeTab(
 
     /** Shows the tab for [style], one of this module's clocks, or for Google's where it is null. */
     private fun showFor(style: ClockStyle?) {
-        val editing = state.isEditingPosition && positionRows != null
-        if (shownOnce && style === shown && editing == shownEditing) return
-        // Between the size and the position rows the picker keeps its Size tab, so it animates nothing itself.
+        val tab = state.openTab?.takeIf { rowsOf(it) != null }
+        if (shownOnce && style === shown && tab == shownTab) return
+        // Between the size rows and a tab of this module's the picker keeps its Size tab, so it animates nothing itself.
         val swapping = shownOnce && style === shown && content.isShown && !SystemMotion.isReduced
-        val leaving = if (editing) rows else positionRows
-        val coming = if (editing) positionRows else rows
+        val leaving = shownTab?.let(::rowsOf) ?: rows
+        val coming = tab?.let(::rowsOf) ?: rows
         shownOnce = true
         shown = style
-        shownEditing = editing
+        shownTab = tab
         val ours = style != null
-        originalRows.forEach { it.visibility = if (ours || editing) View.GONE else View.VISIBLE }
-        rows.visibility = if (ours && !editing) View.VISIBLE else View.GONE
-        positionRows?.visibility = if (editing) View.VISIBLE else View.GONE
+        originalRows.forEach { it.visibility = if (ours || tab != null) View.GONE else View.VISIBLE }
+        rows.visibility = if (ours && tab == null) View.VISIBLE else View.GONE
+        positionRows?.visibility = if (tab == PickerClockState.SheetTab.POSITION) View.VISIBLE else View.GONE
+        glassRows?.visibility = if (tab == PickerClockState.SheetTab.GLASS) View.VISIBLE else View.GONE
         if (ours && largeSwitch?.isChecked == false) largeSwitch.isChecked = true
         onStyle(style)
         // Recorded now, before the picker selects the slot and animates the sheet to it: recorded at the
         // next layout, the sheet first grew to the old rows' height and then snapped to the new one.
         keepHeight(glide = swapping)
-        if (swapping && leaving != null && coming != null) crossfade(leaving, coming)
+        if (swapping && leaving !== coming) crossfade(leaving, coming)
+    }
+
+    /** The rows [tab] shows, or null where this sheet has none for it. */
+    private fun rowsOf(tab: PickerClockState.SheetTab): View? = when (tab) {
+        PickerClockState.SheetTab.POSITION -> positionRows
+        PickerClockState.SheetTab.GLASS -> glassRows
     }
 
     /** Fades [leaving] out where it stands and [coming] in, as the picker fades its own tabs' content. */

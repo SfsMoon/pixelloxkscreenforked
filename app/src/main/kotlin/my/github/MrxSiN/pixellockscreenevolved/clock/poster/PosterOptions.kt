@@ -35,7 +35,7 @@ object PosterOptions {
         ClockOption(OPACITY_KEY, "Opacity", OPACITY_PERCENT.map { "$it%" }, OPACITY_PERCENT.lastIndex),
         axis(HEIGHT_KEY, "Height", font.heights),
         axis(WEIGHT_KEY, "Weight", font.weights),
-    )
+    ) + GlassLook.options
 
     /** The look stored at [step]; a step past the last is the last. */
     fun lookOf(step: Int): GlyphLook = GlyphLook.entries[step.coerceIn(0, GlyphLook.entries.lastIndex)]

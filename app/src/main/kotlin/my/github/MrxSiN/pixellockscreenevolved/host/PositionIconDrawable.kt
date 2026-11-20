@@ -17,12 +17,13 @@ import android.graphics.drawable.Drawable
  *
  * - [Glyph.TAB]: Material Symbols "height" (a double arrow between two bars),
  *   the tab's icon.
+ * - [Glyph.GLASS]: Material Symbols "water_drop", the Glass tab's icon.
  * - [Glyph.DRAG]: a fingertip with an arrow above and below, beside the hint
  *   that the clock is dragged up and down the preview ([PickerDragHint]).
  */
 internal class PositionIconDrawable(private val sizePx: Int, glyph: Glyph = Glyph.TAB) : Drawable() {
 
-    enum class Glyph { TAB, DRAG }
+    enum class Glyph { TAB, DRAG, GLASS }
 
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.WHITE }
     private val path = Path().apply {
@@ -42,6 +43,15 @@ internal class PositionIconDrawable(private val sizePx: Int, glyph: Glyph = Glyp
                 close()
                 addRect(4f, 0.5f, 20f, 2f, Path.Direction.CW)
                 addRect(4f, 22f, 20f, 23.5f, Path.Direction.CW)
+            }
+            Glyph.GLASS -> {
+                // M12,2c-5.33,4.55 -8,8.48 -8,11.8c0,4.98 3.8,8.2 8,8.2s8,-3.22 8,-8.2c0,-3.32 -2.67,-7.25 -8,-11.8z
+                moveTo(12f, 2f)
+                rCubicTo(-5.33f, 4.55f, -8f, 8.48f, -8f, 11.8f)
+                rCubicTo(0f, 4.98f, 3.8f, 8.2f, 8f, 8.2f)
+                rCubicTo(4.2f, 0f, 8f, -3.22f, 8f, -8.2f)
+                rCubicTo(0f, -3.32f, -2.67f, -7.25f, -8f, -11.8f)
+                close()
             }
             Glyph.DRAG -> {
                 fillType = Path.FillType.EVEN_ODD

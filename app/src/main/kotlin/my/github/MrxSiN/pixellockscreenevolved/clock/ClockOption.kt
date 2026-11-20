@@ -6,9 +6,9 @@ import kotlin.math.roundToInt
  * One stepped choice a style offers beyond its size, width and position, such
  * as how its hours are drawn or how opaque it is.
  *
- * Wallpaper & style shows each as a slider of [values] in the clock sheet's
- * Size tab, and the step chosen rides in the clock setting under [key], as the
- * size does. Kept free of Android so the stepping can be unit tested.
+ * Wallpaper & style shows each as a slider of [values] in one of the clock
+ * sheet's tabs ([tab]), and the step chosen rides in the clock setting under
+ * [key], as the size does. Kept free of Android so the stepping can be unit tested.
  */
 data class ClockOption(
     /** Axis key the step is stored under. Renaming one silently resets that choice on every device. */
@@ -19,7 +19,18 @@ data class ClockOption(
     val values: List<String>,
     /** The step a clock that never stored one is drawn at. */
     val defaultStep: Int,
+    /** Which of the clock sheet's tabs shows it. */
+    val tab: Tab = Tab.SIZE,
 ) {
+
+    /** The clock sheet's tabs an option can be shown in. */
+    enum class Tab {
+        /** With the clock's size. */
+        SIZE,
+
+        /** A tab of its own for how glass is drawn. */
+        GLASS,
+    }
 
     init {
         require(values.size >= 2) { "An option needs at least two values: $key" }

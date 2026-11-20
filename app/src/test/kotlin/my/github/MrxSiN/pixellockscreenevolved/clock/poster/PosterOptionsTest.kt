@@ -56,3 +56,30 @@ class PosterOptionsTest {
         assertEquals(0.5f, PosterOptions.axisShareOf(5), 1e-6f)
     }
 }
+
+class GlassLookTest {
+
+    @Test
+    fun everyGlassSliderStartsAtTheDefaultLook() {
+        val start = GlassLook.options.fold(GlassLook()) { look, option -> requireNotNull(look.with(option.key, option.defaultStep)) }
+        assertEquals(GlassLook(), start)
+    }
+
+    @Test
+    fun glassSlidersAreShownInTheGlassTab() {
+        assert(GlassLook.options.all { it.tab == my.github.MrxSiN.pixellockscreenevolved.clock.ClockOption.Tab.GLASS })
+    }
+
+    @Test
+    fun theLightTurnsFromTheRightClockwise() {
+        val fromBelow = requireNotNull(GlassLook().with(GlassLook.LIGHT_KEY, 3))
+        assertEquals(90f, fromBelow.lightDegrees, 0f)
+        assertEquals(0f, fromBelow.lightX, 1e-6f)
+        assertEquals(1f, fromBelow.lightY, 1e-6f)
+    }
+
+    @Test
+    fun aKeyNotOfGlassChangesNothing() {
+        assertEquals(null, GlassLook().with(PosterOptions.HOUR_KEY, 1))
+    }
+}

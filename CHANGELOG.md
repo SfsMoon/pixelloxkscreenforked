@@ -29,6 +29,23 @@
   photo is asked for again when glass has none yet, as after the module is
   installed or reloaded.
 
+- A Glass tab in the clock sheet for the Poster clocks (`ClockOption.Tab`,
+  `GlassLook`): Frost, Refraction, Edge, Dispersion, Highlights, Light (the
+  angle the light comes from) and Tint. The tabs this module adds share one
+  mechanism (`PickerPositionTab`, `PickerClockState.SheetTab`).
+- Glass lights itself in its shader: a Fresnel reflection of the photo around
+  it, a Blinn-Phong glint and sheen from the chosen light and a softer one
+  from the far side, the side away from the light in shadow, and the photo
+  mixed nearly sharp or frosted (`GlassPhoto.Pictures`). The drawn rim over
+  it is gone but on the always-on display.
+
+### Changed
+
+- Stretching a Poster clock by its corners follows the finger one to one
+  with the opposite corner held still, snaps to natural proportions with a
+  tick, and no longer shrinks the time once it is wider than the screen: the
+  line is fitted first and stretched after (`PosterTimeView.setScale`).
+
 ### Fixed
 
 - The Poster clocks stood off centre, to the right, and could be cut at the

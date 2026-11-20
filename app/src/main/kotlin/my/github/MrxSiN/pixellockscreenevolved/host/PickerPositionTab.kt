@@ -18,8 +18,11 @@ import my.github.MrxSiN.pixellockscreenevolved.core.Logger
 import my.github.MrxSiN.pixellockscreenevolved.hook.Hooks
 
 /**
- * A Position tab in Wallpaper & style's clock sheet, last, after Size, for
- * this module's clocks that can be moved ([ClockStyle.isMovable]).
+ * The tabs this module adds to Wallpaper & style's clock sheet, after Size: a
+ * Position tab for this module's clocks that can be moved
+ * ([ClockStyle.isMovable]), and a Glass tab for those drawn in glass, whose
+ * glass options it shows ([ClockOption.Tab.GLASS]). Both ride on the Size
+ * tab's slot in the same way, so what follows says Position for either.
  *
  * The sheet's tabs are a fixed enum (Style, Color, Size), each owning one
  * content view and one recorded height. The Position tab rides on the Size
@@ -61,9 +64,9 @@ internal class PickerPositionTab(
     /** Every click the picker's own tabs carried, compared by identity, so a view bound to an older list is still known. */
     private val pickerClicks: MutableSet<Any> = Collections.newSetFromMap(WeakHashMap())
     private var shownCount = -1
-    private var tabs: Pair<Any, Any>? = null
+    private val tabs = mutableMapOf<PickerClockState.SheetTab, Pair<Any, Any>>()
 
-    /** Whether the clock previewed can take a position; the tab is listed only then. */
+    /** Whether the clock previewed can take a position; the Position tab is listed only then. */
     var isAvailable = false
         set(value) {
             if (field == value) return
@@ -71,6 +74,20 @@ internal class PickerPositionTab(
             if (!value) state.isEditingPosition = false
             resubmit()
         }
+
+    /** Whether the clock previewed is drawn in glass; the Glass tab is listed only then. */
+    var isGlassAvailable = false
+        set(value) {
+            if (field == value) return
+            field = value
+            if (!value && state.openTab == PickerClockState.SheetTab.GLASS) state.openTab = null
+            resubmit()
+        }
+
+    private fun isListed(tab: PickerClockState.SheetTab): Boolean = when (tab) {
+        PickerClockState.SheetTab.POSITION -> isAvailable
+        PickerClockState.SheetTab.GLASS -> isGlassAvailable
+    }
 
     fun install(hooks: Hooks) {
         hooks.replaceArguments(api.submitList) { target, args ->
@@ -90,7 +107,7 @@ internal class PickerPositionTab(
         // R8 merged the click with other lambdas, so only a click a picker tab held counts.
         api.tabClicked?.let { clicked ->
             hooks.after(clicked) { lambda, _ ->
-                if (state.isEditingPosition && lambda in pickerClicks && selectedTabName() == SIZE) close()
+                if (state.openTab != null && lambda in pickerClicks && selectedTabName() == SIZE) close()
             }
         }
     }
@@ -100,7 +117,7 @@ internal class PickerPositionTab(
         val adapter = api.tabAdapter.get(binding)
         if (adapter !== this.adapter.get()) {
             shownCount = -1
-            tabs = null
+            tabs.clear()
         }
         this.adapter = WeakReference(adapter)
         viewModel = WeakReference(api.clockViewModel.get(binding))
@@ -144,25 +161,33 @@ internal class PickerPositionTab(
     }
 
     private fun rewrite(tabs: List<*>): List<*> {
-        if (!isAvailable) return tabs
-        if (selectedTabName() != SIZE) state.isEditingPosition = false
-        val editing = state.isEditingPosition
-        val rewritten = ArrayList<Any?>(tabs.size + 1)
+        val listed = PickerClockState.SheetTab.entries.filter(::isListed)
+        if (listed.isEmpty()) return tabs
+        if (selectedTabName() != SIZE || state.openTab?.let(::isListed) == false) state.openTab = null
+        val open = state.openTab
+        val rewritten = ArrayList<Any?>(tabs.size + listed.size)
         tabs.forEach { tab ->
-            rewritten += if (editing && tab != null && api.isSelected.getBoolean(tab)) api.tab(api.icon.get(tab), api.text.get(tab) as String, false, sizeClick) else tab
+            rewritten += if (open != null && tab != null && api.isSelected.getBoolean(tab)) api.tab(api.icon.get(tab), api.text.get(tab) as String, false, sizeClick) else tab
         }
-        positionTab(editing)?.let { rewritten += it }
+        listed.forEach { tab -> sheetTab(tab, open == tab)?.let { rewritten += it } }
         return rewritten
     }
 
-    /** The Position tab, closed or open: built once per sheet, so every list hands the adapter the same two. */
-    private fun positionTab(editing: Boolean): Any? {
-        val built = tabs ?: run {
+    /** One of this module's tabs, closed or open: built once per sheet, so every list hands the adapter the same two. */
+    private fun sheetTab(tab: PickerClockState.SheetTab, open: Boolean): Any? {
+        val built = tabs[tab] ?: run {
             val context = context.get() ?: return null
-            val icon = api.loadedIcon(PositionIconDrawable(PickerRows.dp(context, ICON_DP)), TITLE) ?: return null
-            (api.tab(icon, TITLE, false, function(::open)) to api.tab(icon, TITLE, true, null)).also { tabs = it }
+            val title = titleOf(tab)
+            val glyph = if (tab == PickerClockState.SheetTab.GLASS) PositionIconDrawable.Glyph.GLASS else PositionIconDrawable.Glyph.TAB
+            val icon = api.loadedIcon(PositionIconDrawable(PickerRows.dp(context, ICON_DP), glyph), title) ?: return null
+            (api.tab(icon, title, false, function { open(tab) }) to api.tab(icon, title, true, null)).also { tabs[tab] = it }
         }
-        return if (editing) built.second else built.first
+        return if (open) built.second else built.first
+    }
+
+    private fun titleOf(tab: PickerClockState.SheetTab): String = when (tab) {
+        PickerClockState.SheetTab.POSITION -> TITLE
+        PickerClockState.SheetTab.GLASS -> GLASS_TITLE
     }
 
     /**
@@ -172,11 +197,11 @@ internal class PickerPositionTab(
      * click would. Before, it closed a Position that was no longer open, and
      * Size could not be tapped.
      */
-    private val sizeClick: Any by lazy { function { if (state.isEditingPosition) close() else selectSize() } }
+    private val sizeClick: Any by lazy { function { if (state.openTab != null) close() else selectSize() } }
 
-    /** Opens the Position tab: the picker selects Size, whose content shows the position controls. */
-    private fun open() {
-        state.isEditingPosition = true
+    /** Opens [tab]: the picker selects Size, whose content shows that tab's controls. */
+    private fun open(tab: PickerClockState.SheetTab) {
+        state.openTab = tab
         if (selectedTabName() == SIZE) resubmit() else selectSize()
     }
 
@@ -188,9 +213,9 @@ internal class PickerPositionTab(
             .onFailure { logger.warn("The clock sheet's Size tab could not be selected", it) }
     }
 
-    /** Goes from Position back to the size controls, the picker's Size tab still selected. */
+    /** Goes from this module's tab back to the size controls, the picker's Size tab still selected. */
     private fun close() {
-        state.isEditingPosition = false
+        state.openTab = null
         resubmit()
     }
 
@@ -279,6 +304,7 @@ internal class PickerPositionTab(
 
     private companion object {
         const val TITLE = "Position"
+        const val GLASS_TITLE = "Glass"
         const val ICON_DP = 24f
         const val SIZE = "SIZE"
         const val TAB_LIST = "tab_list"

@@ -31,9 +31,11 @@ import my.github.MrxSiN.pixellockscreenevolved.clock.ClockFrame
  * A face a person can frame by hand ([ClockFaceAdapter.isFramed]) also moves
  * across, snapping to the middle with a guide down the preview, and shows a
  * frame around its time with a handle at each corner ([FrameOverlay]): a corner
- * dragged stretches the time wider or narrower, taller or shorter, as far as
- * the finger goes ([ClockFrame]). What was framed is chosen
- * ([PickerClockState.chooseFrame]) as the finger lifts.
+ * dragged stretches the time wider or narrower, taller or shorter, following
+ * the finger one to one while the opposite corner stays where it is, as a
+ * picture is cropped; near its natural proportions it snaps to them with a tick
+ * ([ClockFrame]). What was framed is chosen ([PickerClockState.chooseFrame])
+ * as the finger lifts.
  *
  * Nothing can be moved down while the position is adaptive, though a framed
  * face can still be moved across and stretched. TalkBack and switch access move
@@ -56,6 +58,8 @@ internal class PickerClockDrag(
     private var scale = 1f
     private var snapped = -1
     private var centred = false
+    private var naturalX = false
+    private var naturalY = false
     private var dragging = false
     private var movesDown = false
 
@@ -95,9 +99,11 @@ internal class PickerClockDrag(
                 startFrame = face.frame
                 ViewBounds.inAncestor(view, face.timeView, startBounds)
                 pickCorner(event.x, event.y)
-                movesDown = cornerX == 0 && canMoveDown
+                movesDown = canMoveDown
                 snapped = -1
                 centred = false
+                naturalX = startFrame.scaleX == 1f
+                naturalY = startFrame.scaleY == 1f
                 dragging = true
                 return true
             }
@@ -105,7 +111,7 @@ internal class PickerClockDrag(
                 val dx = (event.rawX - startX) / scale
                 val dy = (event.rawY - startY) / scale
                 when {
-                    cornerX != 0 -> face.setFrame(stretched(dx, dy))
+                    cornerX != 0 -> stretch(dx, dy)
                     else -> {
                         if (movesDown) layout.dragTo(follow(startTop + dy))
                         if (canFrame) face.setFrame(movedAcross(dx))
@@ -147,17 +153,32 @@ internal class PickerClockDrag(
     }
 
     /**
-     * The frame for a corner dragged [dx] across and [dy] down: the time is
-     * kept centred, so it grows on both sides by what the corner moved, and it
-     * hangs from its top, so it grows down by what the corner moved.
+     * Stretches the time for a corner dragged [dx] across and [dy] down, the
+     * opposite corner held where it stood: the time is kept centred in its
+     * column, so it is moved across by half what it grew; it hangs from its
+     * top, so a top corner moves the whole clock down by what it shrank.
      */
-    private fun stretched(dx: Float, dy: Float): ClockFrame {
+    private fun stretch(dx: Float, dy: Float) {
         val width = startBounds.width().coerceAtLeast(1f)
         val height = startBounds.height().coerceAtLeast(1f)
-        return startFrame.copy(
-            scaleX = startFrame.scaleX * (width + 2 * cornerX * dx) / width,
-            scaleY = startFrame.scaleY * (height + cornerY * dy) / height,
-        ).clamped()
+        val tolerance = NATURAL_SNAP_DP * view.resources.displayMetrics.density / scale
+        var scaleX = (startFrame.scaleX * (width + cornerX * dx) / width).coerceIn(ClockFrame.MIN_SCALE, ClockFrame.MAX_SCALE)
+        var scaleY = (startFrame.scaleY * (height + cornerY * dy) / height).coerceIn(ClockFrame.MIN_SCALE, ClockFrame.MAX_SCALE)
+        // Near its natural proportions, a side snaps to them, with a tick as it does.
+        val nearX = abs(scaleX - 1f) * width / startFrame.scaleX < tolerance
+        val nearY = abs(scaleY - 1f) * height / startFrame.scaleY < tolerance
+        if ((nearX && !naturalX) || (nearY && !naturalY)) view.performHapticFeedback(HapticFeedbackConstants.SEGMENT_TICK)
+        naturalX = nearX
+        naturalY = nearY
+        if (nearX) scaleX = 1f
+        if (nearY) scaleY = 1f
+        val grownX = width * (scaleX / startFrame.scaleX - 1f)
+        val grownY = height * (scaleY / startFrame.scaleY - 1f)
+        val screen = view.rootView.width.takeIf { it > 0 }?.toFloat() ?: 1f
+        face.setFrame(
+            startFrame.copy(scaleX = scaleX, scaleY = scaleY, shiftX = startFrame.shiftX + cornerX * grownX / 2f / screen).clamped(),
+        )
+        if (movesDown) layout.dragTo(if (cornerY < 0) startTop - grownY else startTop)
     }
 
     /** The frame for the clock moved [dx] across, snapped to the middle near it. */
@@ -393,6 +414,9 @@ internal class PickerClockDrag(
 
         /** How near a corner of the time's frame, in dp on screen, a finger takes it to stretch the time. */
         const val HANDLE_REACH_DP = 36f
+
+        /** How near its natural width or height, in dp on screen, a stretched side snaps to it. */
+        const val NATURAL_SNAP_DP = 8f
 
         const val FRAME_DP = 1f
         const val FRAME_ALPHA = 110
