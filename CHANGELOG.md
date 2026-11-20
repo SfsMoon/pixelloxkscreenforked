@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- Poster Tall and Poster Bold clock styles: the time as one line of giant
+  figures in fonts the module now ships (`assets/fonts/`). The hours and the
+  minutes are each drawn solid, outlined or as glass, and the time's opacity
+  is chosen from 10% to 100%, with sliders the Size tab adds for these styles
+  (`ClockOption`, `ConfigurableClockFace`); size and position work as for the
+  other styles. Glass is drawn from the figures' own outline (tinted body,
+  lit edges, gloss and shadow); it does not blur the wallpaper behind it. The
+  figures thin on the always-on display, where glass keeps only its rim.
+
 ## 0.0.8 — 2026-11-12
 
 ### Fixed

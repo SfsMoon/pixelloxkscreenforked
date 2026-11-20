@@ -14,6 +14,7 @@ import my.github.MrxSiN.pixellockscreenevolved.clock.clockStyles
 import my.github.MrxSiN.pixellockscreenevolved.core.AndroidLogger
 import my.github.MrxSiN.pixellockscreenevolved.core.DexLocator
 import my.github.MrxSiN.pixellockscreenevolved.core.Logger
+import my.github.MrxSiN.pixellockscreenevolved.core.ModuleFonts
 import my.github.MrxSiN.pixellockscreenevolved.diagnostics.ContractAnalyzer
 import my.github.MrxSiN.pixellockscreenevolved.diagnostics.Feature
 import my.github.MrxSiN.pixellockscreenevolved.diagnostics.FeatureFaults
@@ -189,7 +190,7 @@ class PixelLockScreenEvolvedModule : XposedModule() {
         val host = loaded.host
         val reloadedRegistry = loaded.registry
         val onRegistry = { registry: Any -> loaded.registry = registry }
-        val styles = clockStyles()
+        val styles = clockStyles(ModuleFonts(moduleApplicationInfo, logger))
         return when (host) {
             Host.SYSTEMUI -> {
                 val depth = gate.allows(Feature.DEPTH_EFFECT)

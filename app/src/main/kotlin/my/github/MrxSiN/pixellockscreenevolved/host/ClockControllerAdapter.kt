@@ -36,6 +36,10 @@ internal class ClockControllerAdapter(
             it.setSizeStep(sizeStep)
         }
         large.setPosition(api.axis(settings, ClockAxes.POSITION_KEY), api.axis(settings, ClockAxes.POSITION_SHARE_KEY))
+        style.options.forEach { option ->
+            val stored = api.axis(settings, option.key)
+            faces.forEach { it.setOption(option.key, stored) }
+        }
     }
 
     /** The large face, the one the depth effect draws in front of. */
@@ -47,6 +51,11 @@ internal class ClockControllerAdapter(
     /** Shows [step] on the large face at once, as the picker's size slider moves. */
     fun previewSizeStep(step: Float) {
         large.setSizeStep(step)
+    }
+
+    /** Shows [step] of the option under [key] on both faces at once, as the picker's option sliders move. */
+    fun previewOption(key: String, step: Float) {
+        faces.forEach { it.setOption(key, step) }
     }
 
     /** Shows [position] on the large face at once, as the picker's position controls change. */
@@ -106,6 +115,7 @@ internal class ClockControllerAdapter(
         size = size,
         sizeSteps = style.sizeSteps,
         movable = style.isMovable,
+        options = style.options,
         context = context,
         initialTheme = initialTheme,
     )

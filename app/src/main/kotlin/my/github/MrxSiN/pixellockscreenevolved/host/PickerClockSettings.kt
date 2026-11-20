@@ -7,7 +7,7 @@ import my.github.MrxSiN.pixellockscreenevolved.hook.HostPatch
 
 /**
  * Makes every clock setting Wallpaper & style writes for this module's clocks
- * carry the width, the size and the position.
+ * carry the width, the size, the position and the style's own options.
  *
  * The picker writes one set of axes: the preset its "Clock face width"
  * slider is on, which holds the width. The size and position come from the controls this module adds, so they are merged in
@@ -22,7 +22,7 @@ internal class PickerClockSettings(
     private val logger: Logger,
 ) : HostPatch {
 
-    private val styleIds = styles.map { it.id }.toSet()
+    private val styles = styles.associateBy { it.id }
 
     override fun install(classLoader: ClassLoader) {
         val api = try {
@@ -37,7 +37,7 @@ internal class PickerClockSettings(
         hooks.before(applySettings) { _, args ->
             val settings = args.firstOrNull() ?: return@before
             val clockId = api.clockId(settings)
-            if (clockId !in styleIds) return@before
+            val style = styles[clockId] ?: return@before
             val sameClock = state.storedClockId() == clockId
 
             val width = api.axis(settings, ClockAxes.WIDTH_KEY)
@@ -56,6 +56,12 @@ internal class PickerClockSettings(
             api.putAxis(settings, ClockAxes.POSITION_KEY, position.modeValue)
             api.putAxis(settings, ClockAxes.POSITION_SHARE_KEY, position.share)
             api.putAxis(settings, ClockAxes.WIDTH_AXIS_KEY, ClockAxes.WIDE_CLOCK_WIDTH)
+            style.options.forEach { option ->
+                val step = state.chosenOptionStep(option.key)
+                    ?: state.storedAxis(option.key)?.takeIf { sameClock }?.let(option::stepOf)
+                    ?: option.defaultStep
+                api.putAxis(settings, option.key, step.toFloat())
+            }
         }
     }
 }

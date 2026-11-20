@@ -1,7 +1,10 @@
 package my.github.MrxSiN.pixellockscreenevolved.host
 
 import java.util.Collections
+import java.util.concurrent.ConcurrentHashMap
 import java.util.WeakHashMap
+
+import my.github.MrxSiN.pixellockscreenevolved.clock.ClockOption
 
 /**
  * What Wallpaper & style's process knows about this module's clocks while a
@@ -28,6 +31,9 @@ internal class PickerClockState(private val api: ClockPluginApi) {
     var chosenPosition: ClockPosition? = null
         private set
 
+    /** The step each option was moved to since the picker opened, by key, with the option it was chosen for. */
+    private val chosenOptions = ConcurrentHashMap<String, Pair<ClockOption, Int>>()
+
     private val choiceListeners = mutableListOf<() -> Unit>()
 
     private val previews = Collections.synchronizedSet(Collections.newSetFromMap(WeakHashMap<ClockControllerAdapter, Boolean>()))
@@ -48,6 +54,16 @@ internal class PickerClockState(private val api: ClockPluginApi) {
         choiceListeners.forEach { it() }
     }
 
+    /** Records [step] of [option], shows it on every preview clock, and tells whoever listens. */
+    fun chooseOption(option: ClockOption, step: Int) {
+        chosenOptions[option.key] = option to step
+        synchronized(previews) { previews.toList() }.forEach { it.previewOption(option.key, step.toFloat()) }
+        choiceListeners.forEach { it() }
+    }
+
+    /** The step the option under [key] was moved to since the picker opened, or null if it was not touched. */
+    fun chosenOptionStep(key: String): Int? = chosenOptions[key]?.second
+
     /** Records [position], shows it on every preview clock, and tells whoever listens. */
     fun choosePosition(position: ClockPosition) {
         chosenPosition = position
@@ -67,8 +83,11 @@ internal class PickerClockState(private val api: ClockPluginApi) {
         return chosen != storedPosition()
     }
 
-    /** Whether the size or the position chosen differs from what the setting in effect stores. */
-    fun isAxisEdited(): Boolean = isSizeStepEdited() || isPositionEdited()
+    /** Whether any option moved to differs from the step the setting in effect stores. */
+    fun isOptionEdited(): Boolean = chosenOptions.values.any { (option, step) -> step != option.stepOf(storedAxis(option.key)) }
+
+    /** Whether the size, the position or an option chosen differs from what the setting in effect stores. */
+    fun isAxisEdited(): Boolean = isSizeStepEdited() || isPositionEdited() || isOptionEdited()
 
     /** The axes chosen since the picker opened, for a preset to carry to the preview and to Apply. */
     fun chosenAxes(): Map<String, Float> = buildMap {
@@ -77,6 +96,7 @@ internal class PickerClockState(private val api: ClockPluginApi) {
             put(ClockAxes.POSITION_KEY, it.modeValue)
             put(ClockAxes.POSITION_SHARE_KEY, it.share)
         }
+        chosenOptions.forEach { (key, chosen) -> put(key, chosen.second.toFloat()) }
     }
 
     /** The position the setting in effect stores. */
@@ -109,6 +129,7 @@ internal class PickerClockState(private val api: ClockPluginApi) {
     fun reset() {
         chosenSizeStep = null
         chosenPosition = null
+        chosenOptions.clear()
         isEditingPosition = false
     }
 

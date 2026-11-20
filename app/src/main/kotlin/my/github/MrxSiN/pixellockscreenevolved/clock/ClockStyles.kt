@@ -1,21 +1,23 @@
 package my.github.MrxSiN.pixellockscreenevolved.clock
 
 import my.github.MrxSiN.pixellockscreenevolved.clock.ios.IosClockStyle
+import my.github.MrxSiN.pixellockscreenevolved.clock.poster.PosterClockStyle
+import my.github.MrxSiN.pixellockscreenevolved.clock.poster.PosterFont
 import my.github.MrxSiN.pixellockscreenevolved.clock.styles.AnalogClockStyle
 import my.github.MrxSiN.pixellockscreenevolved.clock.styles.NumeralsClockStyle
 import my.github.MrxSiN.pixellockscreenevolved.clock.styles.SplitClockStyle
 import my.github.MrxSiN.pixellockscreenevolved.clock.styles.StackedClockStyle
 
 /**
- * Every clock style this module offers.
+ * Every clock style this module offers; [fonts] reads the fonts a style ships.
  *
  * This list is the only thing that changes when a style is added, and nothing
  * here knows how any style draws.
  */
-fun clockStyles(): List<ClockStyle> = listOf(
+fun clockStyles(fonts: FontSource): List<ClockStyle> = listOf(
     IosClockStyle(),
     StackedClockStyle(),
     NumeralsClockStyle(),
     AnalogClockStyle(),
     SplitClockStyle(),
-)
+) + PosterFont.entries.map { PosterClockStyle(it, fonts) }

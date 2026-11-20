@@ -49,6 +49,13 @@ interface ClockStyle {
      */
     val isMovable: Boolean get() = true
 
+    /**
+     * Stepped choices this style offers beyond its size, width and position,
+     * each shown as a slider in Wallpaper & style. The faces of a style with any
+     * implement [ConfigurableClockFace].
+     */
+    val options: List<ClockOption> get() = emptyList()
+
     fun createFace(context: Context, size: FaceSize): ClockFace
 
     /** The small picture Wallpaper & style shows for this style in its list. */

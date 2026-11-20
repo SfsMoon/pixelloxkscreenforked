@@ -5,9 +5,18 @@ endorsed by, or sponsored by Google LLC or Apple Inc. Android and Pixel are
 trademarks of Google LLC; iOS is a trademark of Apple Inc. These names are used
 only to identify the software this module extends and the design it imitates.
 
-The module draws its clocks with fonts already on the device (Roboto Flex and
-the system sans-serif). It does not redistribute any Google or Apple asset, and
-does not include SF Pro or any other font of theirs.
+The module draws most of its clocks with fonts already on the device (Roboto
+Flex and the system sans-serif). It does not redistribute any Google or Apple
+asset, and does not include SF Pro or any other font of theirs.
+
+## Poster clock fonts
+
+`app/src/main/assets/fonts/poster_tall.ttf` and `poster_bold.ttf` draw the
+Poster Tall and Poster Bold clocks. They were added by the owner of this fork;
+their embedded names identify them as OPPO clock fonts ("OPPO Big-Clock 06"
+and "OPPO-ClockFamily"). They are not covered by this project's licence, and
+whoever distributes a build that includes them is responsible for having the
+right to do so.
 
 ## BiRefNet_lite
 

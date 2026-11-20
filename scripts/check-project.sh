@@ -45,9 +45,14 @@ grep -q 'WIDTH_KEY = "PIXEL_LOCK_SCREEN_EVOLVED_WIDTH"' "$SRC/host/ClockAxes.kt"
 ! grep -qE '^import android' "$SRC/clock/ios/IosClockScale.kt"
 ! grep -qE '^import android' "$SRC/clock/parts/StretchFit.kt"
 ! grep -qE '^import android' "$SRC/clock/styles/SplitClockScale.kt"
+! grep -qE '^import android' "$SRC/clock/ClockOption.kt"
+! grep -qE '^import android' "$SRC/clock/poster/PosterOptions.kt"
+! grep -qE '^import android' "$SRC/clock/poster/PosterFont.kt"
 
-# The clock uses the system's Roboto Flex; no font binary is bundled.
-[ ! -e "$ROOT/app/src/main/assets/fonts" ]
+# The Roboto Flex clocks use the system's font; only the Poster clocks ship theirs.
+[ "$(ls "$ROOT/app/src/main/assets/fonts")" = "$(printf 'poster_bold.ttf\nposter_tall.ttf')" ]
+grep -q '"fonts/poster_tall.ttf"' "$SRC/clock/poster/PosterFont.kt"
+grep -q '"fonts/poster_bold.ttf"' "$SRC/clock/poster/PosterFont.kt"
 
 # The segmentation model ships with its licence, under GitHub's 100 MB file limit.
 grep -q 'models/birefnet_lite.onnx' "$SRC/depth/SubjectSegmenter.kt"

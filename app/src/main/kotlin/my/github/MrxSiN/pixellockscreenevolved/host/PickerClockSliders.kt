@@ -7,6 +7,9 @@ import android.widget.CompoundButton
 import android.widget.LinearLayout
 import android.widget.TextView
 
+import kotlin.math.roundToInt
+
+import my.github.MrxSiN.pixellockscreenevolved.clock.ClockOption
 import my.github.MrxSiN.pixellockscreenevolved.clock.ClockStyle
 import my.github.MrxSiN.pixellockscreenevolved.core.Logger
 import my.github.MrxSiN.pixellockscreenevolved.hook.Hooks
@@ -37,6 +40,9 @@ internal class PickerClockSliders(
 ) : HostPatch {
 
     private val styles = styles.associateBy { it.id }
+
+    /** Every option any style offers, once per key: styles sharing a key share its slider. */
+    private val optionKeys = styles.flatMap { it.options }.map { it.key }.distinct()
 
     override fun install(classLoader: ClassLoader) {
         val sliders = try {
@@ -84,9 +90,15 @@ internal class PickerClockSliders(
             tag = SIZE_LABEL
             addView(size.row)
         }
+        val options = optionKeys.mapNotNull { key -> optionRow(sliders, sheet, key, presetSlider)?.also { rows.addView(it.row.row) } }
         var steps = 0
+        var optionsShownFor: ClockStyle? = null
         val onStyle = { style: ClockStyle? ->
             positionTab?.isAvailable = style?.isMovable == true
+            if (style !== optionsShownFor) {
+                optionsShownFor = style
+                options.forEach { it.showFor(style) }
+            }
             // Each style has its own number of sizes; the slider is given them as its clock is previewed.
             val count = style?.sizeSteps ?: ClockStyle.DEFAULT_SIZE_STEPS
             if (count != steps) {
@@ -98,12 +110,50 @@ internal class PickerClockSliders(
         PickerSizeTab(sizeContent, rows, position, largeSwitch, sliders, previewed, state, onStyle, logger)
     }
 
+    /** A slider row for the option stored under [key], for whichever style is previewed. */
+    private fun optionRow(sliders: PickerSliderApi, sheet: View, key: String, presetSlider: View): OptionRow? {
+        val row = sliderRow(sheet, key) ?: return null
+        followColours(sliders, presetSlider, row.slider)
+        return OptionRow(sliders, row, key).also { option ->
+            sliders.onValueChange(row.slider) { value, fromUser -> option.onValue(value.roundToInt(), fromUser) }
+        }
+    }
+
+    /** One option's row: hidden for a style without the option, and labelled with the step it is on. */
+    private inner class OptionRow(private val sliders: PickerSliderApi, val row: SliderRow, private val key: String) {
+
+        private var option: ClockOption? = null
+
+        fun showFor(style: ClockStyle?) {
+            val shown = style?.options?.firstOrNull { it.key == key }
+            option = shown
+            row.row.visibility = if (shown == null) View.GONE else View.VISIBLE
+            if (shown == null) return
+            val stored = state.storedAxis(key)?.takeIf { state.storedClockId() == style.id }
+            val step = state.chosenOptionStep(key) ?: shown.stepOf(stored)
+            sliders.configure(row.slider, 0f, shown.lastStep.toFloat(), 1f, step.toFloat())
+            label(shown, step)
+        }
+
+        fun onValue(step: Int, fromUser: Boolean) {
+            val shown = option ?: return
+            label(shown, step)
+            if (fromUser) state.chooseOption(shown, step)
+        }
+
+        private fun label(option: ClockOption, step: Int) {
+            row.label.text = option.describe(step)
+            row.label.contentDescription = row.label.text
+            row.slider.contentDescription = option.label
+        }
+    }
+
     /** The size the setting in effect stores, when it is one of this module's clocks. */
     private fun storedSizeStep(): Float =
         state.storedAxis(ClockAxes.SIZE_KEY)?.takeIf { state.storedClockId() in styles } ?: 0f
 
     /** One of the Style tab's slider rows: its label and its stepped `Slider`. */
-    class SliderRow(val row: ViewGroup, val slider: View)
+    class SliderRow(val row: ViewGroup, val label: TextView, val slider: View)
 
     companion object {
         private const val SIZE_LABEL = "Clock size"
@@ -127,7 +177,7 @@ internal class PickerClockSliders(
             labelView.text = label
             labelView.contentDescription = label
             slider.contentDescription = label
-            return SliderRow(row, slider)
+            return SliderRow(row, labelView, slider)
         }
 
         /** Keeps [slider] in [source]'s colours, which the picker changes with the wallpaper, before each of its draws. */

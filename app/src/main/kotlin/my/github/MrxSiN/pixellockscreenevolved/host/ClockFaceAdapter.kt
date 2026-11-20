@@ -8,6 +8,8 @@ import java.lang.ref.WeakReference
 
 import my.github.MrxSiN.pixellockscreenevolved.clock.AdjustableWidthClockFace
 import my.github.MrxSiN.pixellockscreenevolved.clock.ClockFace
+import my.github.MrxSiN.pixellockscreenevolved.clock.ClockOption
+import my.github.MrxSiN.pixellockscreenevolved.clock.ConfigurableClockFace
 import my.github.MrxSiN.pixellockscreenevolved.clock.DozingClockFace
 import my.github.MrxSiN.pixellockscreenevolved.clock.EdgeToEdgeClockFace
 import my.github.MrxSiN.pixellockscreenevolved.clock.ExpressiveClockFace
@@ -31,6 +33,8 @@ internal class ClockFaceAdapter(
     private val sizeSteps: Int,
     /** Whether the large face may stand lower than the top ([ClockStyle.isMovable]). */
     movable: Boolean,
+    /** The style's own choices ([ClockStyle.options]), read from the axes as the size is. */
+    private val options: List<ClockOption>,
     /** The host's own context, for whatever places the face against what SystemUI lays out around it. */
     val context: Context,
     initialTheme: Any,
@@ -183,6 +187,7 @@ internal class ClockFaceAdapter(
     private fun setAxes(axisStyle: Any) {
         api.axisOf(axisStyle, ClockAxes.WIDTH_KEY)?.let(::setWidth)
         api.axisOf(axisStyle, ClockAxes.SIZE_KEY)?.let(::setSizeStep)
+        options.forEach { option -> api.axisOf(axisStyle, option.key)?.let { setOption(option.key, it) } }
         val mode = api.axisOf(axisStyle, ClockAxes.POSITION_KEY)
         val share = api.axisOf(axisStyle, ClockAxes.POSITION_SHARE_KEY)
         if (mode != null || share != null) setPosition(mode, share)
@@ -202,6 +207,13 @@ internal class ClockFaceAdapter(
         val shown = if (size == FaceSize.SMALL) ClockAxes.SMALL_CLOCK_SIZE_STEP else step
         timeChanges++
         (face as? ResizableClockFace)?.setSize(ClockAxes.sizeOf(shown, sizeSteps))
+    }
+
+    /** Shows the step a stored value chooses for the option under [key]; an option the style lacks is ignored. */
+    fun setOption(key: String, value: Float?) {
+        val option = options.firstOrNull { it.key == key } ?: return
+        timeChanges++
+        (face as? ConfigurableClockFace)?.setOption(key, option.stepOf(value))
     }
 
     /** Shows the width a stored width value chooses; a face with one width has nothing to change. */
