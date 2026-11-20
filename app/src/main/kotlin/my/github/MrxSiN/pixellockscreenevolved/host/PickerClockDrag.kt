@@ -123,7 +123,7 @@ internal class PickerClockDrag(
                 guide.hide()
                 if (canFrame && face.frame != startFrame) state.chooseFrame(face.frame)
                 if (movesDown) {
-                    val share = if (snapped >= 0) ClockPosition.ANCHORS[snapped] else shareOf(view.top + view.translationY).coerceIn(0f, 1f)
+                    val share = if (snapped >= 0) ClockPosition.ANCHORS[snapped] else shareOf(view.top + view.translationY).coerceIn(ClockPosition.HIGHEST, 1f)
                     state.choosePosition(ClockPosition(share))
                     layout.endDrag()
                     view.announceForAccessibility(ClockPosition.nameOf(share))
@@ -196,7 +196,8 @@ internal class PickerClockDrag(
 
     /** Where the face's top goes for a finger asking for [wanted]: snapped to an anchor near it, held back past the ends. */
     private fun follow(wanted: Float): Float {
-        val top = topOf(0f)
+        // Above the band the clock goes on to the top of the screen, as far as a person drags it.
+        val top = topOf(ClockPosition.HIGHEST)
         val bottom = topOf(1f)
         val snapDistance = SNAP_DP * view.resources.displayMetrics.density
         var nearest = -1

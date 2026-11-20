@@ -21,6 +21,7 @@ object PosterOptions {
     const val OPACITY_KEY = "PIXEL_LOCK_SCREEN_EVOLVED_OPACITY"
     const val HEIGHT_KEY = "PIXEL_LOCK_SCREEN_EVOLVED_FIGURE_HEIGHT"
     const val WEIGHT_KEY = "PIXEL_LOCK_SCREEN_EVOLVED_FIGURE_WEIGHT"
+    const val DATE_KEY = "PIXEL_LOCK_SCREEN_EVOLVED_DATE_PLACE"
 
     /** Opacity at each step, in percent, the faintest first. */
     private val OPACITY_PERCENT = (1..10).map { it * 10 }
@@ -35,7 +36,11 @@ object PosterOptions {
         ClockOption(OPACITY_KEY, "Opacity", OPACITY_PERCENT.map { "$it%" }, OPACITY_PERCENT.lastIndex),
         axis(HEIGHT_KEY, "Height", font.heights),
         axis(WEIGHT_KEY, "Weight", font.weights),
+        ClockOption(DATE_KEY, "Date", DatePlace.entries.map { it.title }, DatePlace.ABOVE.ordinal),
     ) + GlassLook.options
+
+    /** Where the date is stored at [step]. */
+    fun datePlaceOf(step: Int): DatePlace = DatePlace.entries[step.coerceIn(0, DatePlace.entries.lastIndex)]
 
     /** The look stored at [step]; a step past the last is the last. */
     fun lookOf(step: Int): GlyphLook = GlyphLook.entries[step.coerceIn(0, GlyphLook.entries.lastIndex)]
@@ -54,6 +59,15 @@ object PosterOptions {
         List(AXIS_STEPS) { "${(range.at(axisShareOf(it))).roundToInt()}" },
         (range.initialShare * (AXIS_STEPS - 1)).roundToInt(),
     )
+}
+
+/** Where the large face writes the date and weather. Stored by position, so a new place goes at the end. */
+enum class DatePlace(val title: String) {
+    ABOVE("Above"),
+    BELOW("Below"),
+
+    /** Not at all: the time alone, which can then stand right under the status bar. */
+    HIDDEN("Hidden"),
 }
 
 /**

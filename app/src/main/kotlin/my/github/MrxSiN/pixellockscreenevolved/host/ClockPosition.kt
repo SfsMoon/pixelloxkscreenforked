@@ -11,7 +11,10 @@ package my.github.MrxSiN.pixellockscreenevolved.host
  *
  * The band runs from under the status bar to above the fingerprint sensor and
  * the smartspace card that follows the clock; a share of it, not a pixel, is
- * stored, so a position holds on every screen size and resolution. The
+ * stored. A clock dragged above the band goes on into the room above it, up
+ * to the top of the screen: a share below 0, down to [HIGHEST] at the very top,
+ * so a face whose own date stands above its time can still put the time
+ * right under the status bar. Such a share is so a position holds on every screen size and resolution. The
  * always-on display keeps SystemUI's own position whatever is chosen
  * ([AodClockMotion]), and the small clock beside notifications is never
  * moved. Kept free of Android so it can be unit tested.
@@ -39,6 +42,7 @@ internal data class ClockPosition(val share: Float, val adaptive: Boolean = fals
 
         /** The name of the anchor [share] is on, or how far down it is as a percentage between them. */
         fun nameOf(share: Float): String {
+            if (share < -NAME_TOLERANCE) return "Above the top"
             for (i in ANCHORS.indices) if (kotlin.math.abs(ANCHORS[i] - share) < NAME_TOLERANCE) return ANCHOR_NAMES[i]
             return "${kotlin.math.round(share * PERCENT).toInt()}% down"
         }
@@ -48,16 +52,27 @@ internal data class ClockPosition(val share: Float, val adaptive: Boolean = fals
         private const val PLACED_MODE = 0f
         private const val ADAPTIVE_MODE = 1f
 
+        /** The highest share: the face's top at the top of the screen, above the band. */
+        const val HIGHEST = -1f
+
         /** The position stored [mode] and [share] axis values choose; anything this build does not know reads as placed. */
         fun of(mode: Float?, share: Float?): ClockPosition =
-            ClockPosition((share ?: 0f).coerceIn(0f, 1f), adaptive = mode == ADAPTIVE_MODE)
+            ClockPosition((share ?: 0f).coerceIn(HIGHEST, 1f), adaptive = mode == ADAPTIVE_MODE)
 
-        /** The top of a face [height] tall at [share] of the band from [bandTop] to [bandBottom]. */
-        fun topAt(share: Float, bandTop: Float, bandBottom: Float, height: Float): Float =
-            bandTop + share.coerceIn(0f, 1f) * (bandBottom - bandTop - height).coerceAtLeast(0f)
+        /**
+         * The top of a face [height] tall at [share] of the band from [bandTop]
+         * to [bandBottom]; below 0, that far of the way from the band's top to
+         * the screen's.
+         */
+        fun topAt(share: Float, bandTop: Float, bandBottom: Float, height: Float): Float {
+            val clamped = share.coerceIn(HIGHEST, 1f)
+            if (clamped < 0f) return bandTop * (1f + clamped)
+            return bandTop + clamped * (bandBottom - bandTop - height).coerceAtLeast(0f)
+        }
 
         /** The share of the band a face [height] tall whose top is at [top] stands at, unclamped. */
         fun shareAt(top: Float, bandTop: Float, bandBottom: Float, height: Float): Float {
+            if (top < bandTop && bandTop > 0f) return top / bandTop - 1f
             val free = bandBottom - bandTop - height
             return if (free > 0f) (top - bandTop) / free else 0f
         }

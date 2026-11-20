@@ -41,6 +41,11 @@
 
 ### Changed
 
+- A clock dragged above the band it stands in goes on to the top of the
+  screen (`ClockPosition.HIGHEST`): a face whose own date stands above its
+  time could not put the time right under the status bar.
+- A Date option for the Poster clocks: the date and weather above the time,
+  below it, or hidden (`DatePlace`).
 - Poster clocks stay where they stand awake on the always-on display
   (`ClockStyle.keepsPlaceOnAod`), lifted clear of the fingerprint sensor,
   rather than going where SystemUI puts its own clock.

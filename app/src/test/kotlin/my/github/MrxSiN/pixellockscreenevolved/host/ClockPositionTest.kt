@@ -46,3 +46,20 @@ class ClockPositionTest {
         assertEquals("40% down", ClockPosition.nameOf(0.4f))
     }
 }
+
+class ClockPositionAboveBandTest {
+
+    @org.junit.Test
+    fun aShareBelowZeroRisesIntoTheRoomAboveTheBandToTheScreensTop() {
+        org.junit.Assert.assertEquals(100f, ClockPosition.topAt(0f, 100f, 1100f, 200f), 0f)
+        org.junit.Assert.assertEquals(50f, ClockPosition.topAt(-0.5f, 100f, 1100f, 200f), 0f)
+        org.junit.Assert.assertEquals(0f, ClockPosition.topAt(-3f, 100f, 1100f, 200f), 0f)
+    }
+
+    @org.junit.Test
+    fun aTopAboveTheBandReadsBackAsTheSameShare() {
+        org.junit.Assert.assertEquals(-0.5f, ClockPosition.shareAt(50f, 100f, 1100f, 200f), 1e-6f)
+        org.junit.Assert.assertEquals(-0.5f, ClockPosition.of(0f, -0.5f).share, 0f)
+        org.junit.Assert.assertEquals(ClockPosition.HIGHEST, ClockPosition.of(0f, -9f).share, 0f)
+    }
+}

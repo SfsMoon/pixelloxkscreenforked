@@ -102,6 +102,7 @@ class PosterClockStyle(private val font: PosterFont, private val fonts: FontSour
         private var weightShare = font.weights.initialShare
         private var frame = ClockFrame.NATURAL
         private var glass = GlassLook()
+        private var datePlace = DatePlace.ABOVE
         private var shownSize = 0f
 
         /** How much smaller than laid out the host draws the face ([setDrawnScale]). */
@@ -154,10 +155,7 @@ class PosterClockStyle(private val font: PosterFont, private val fonts: FontSour
             time.fit(sized, maxWidth = columnWidth())
             time.setScale(frame.scaleX, frame.scaleY)
             column?.shift = frame.shiftX * windowWidth() / drawnScale
-            (time.layoutParams as? ViewGroup.MarginLayoutParams)?.let {
-                it.topMargin = (shortSide * DATE_GAP).toInt()
-                time.layoutParams = it
-            }
+            placeDate(datePlace)
         }
 
         override fun setDoze(fraction: Float) = time.setDoze(fraction)
@@ -169,6 +167,29 @@ class PosterClockStyle(private val font: PosterFont, private val fonts: FontSour
         }
 
         override fun setBackdrop(backdrop: Backdrop?) = time.setBackdrop(backdrop)
+
+        /** Writes the date above the time, below it, or not at all. */
+        private fun placeDate(place: DatePlace) {
+            val line = date?.view ?: return
+            val column = view as ViewGroup
+            line.visibility = if (place == DatePlace.HIDDEN) View.GONE else View.VISIBLE
+            val wanted = if (place == DatePlace.BELOW) column.childCount - 1 else 0
+            if (column.indexOfChild(line) != wanted) {
+                column.removeView(line)
+                column.addView(line, wanted)
+            }
+            // The gap stands between the two, on whichever is lower.
+            val gap = if (place == DatePlace.HIDDEN) 0 else (shortSide * DATE_GAP).toInt()
+            (time.layoutParams as? ViewGroup.MarginLayoutParams)?.let {
+                it.topMargin = if (place == DatePlace.ABOVE) gap else 0
+                time.layoutParams = it
+            }
+            (line.layoutParams as? ViewGroup.MarginLayoutParams)?.let {
+                it.topMargin = if (place == DatePlace.BELOW) gap else 0
+                line.layoutParams = it
+            }
+            datePlace = place
+        }
 
         /** Stretches and moves the large face as a person framed it by hand; the small face keeps its place beside notifications. */
         override fun setFrame(frame: ClockFrame) {
@@ -200,6 +221,7 @@ class PosterClockStyle(private val font: PosterFont, private val fonts: FontSour
                 PosterOptions.OPACITY_KEY -> return time.setOpacity(PosterOptions.opacityOf(step))
                 PosterOptions.HEIGHT_KEY -> heightShare = PosterOptions.axisShareOf(step)
                 PosterOptions.WEIGHT_KEY -> weightShare = PosterOptions.axisShareOf(step)
+                PosterOptions.DATE_KEY -> return placeDate(PosterOptions.datePlaceOf(step))
                 else -> {
                     glass = glass.with(key, step) ?: return
                     return time.setGlass(glass)
