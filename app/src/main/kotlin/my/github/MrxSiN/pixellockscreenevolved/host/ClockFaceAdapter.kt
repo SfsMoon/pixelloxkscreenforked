@@ -8,6 +8,8 @@ import java.lang.ref.WeakReference
 
 import my.github.MrxSiN.pixellockscreenevolved.clock.AdjustableWidthClockFace
 import my.github.MrxSiN.pixellockscreenevolved.clock.ClockFace
+import my.github.MrxSiN.pixellockscreenevolved.clock.ClockFrame
+import my.github.MrxSiN.pixellockscreenevolved.clock.FramedClockFace
 import my.github.MrxSiN.pixellockscreenevolved.clock.ClockOption
 import my.github.MrxSiN.pixellockscreenevolved.clock.ConfigurableClockFace
 import my.github.MrxSiN.pixellockscreenevolved.clock.DozingClockFace
@@ -188,6 +190,10 @@ internal class ClockFaceAdapter(
         api.axisOf(axisStyle, ClockAxes.WIDTH_KEY)?.let(::setWidth)
         api.axisOf(axisStyle, ClockAxes.SIZE_KEY)?.let(::setSizeStep)
         options.forEach { option -> api.axisOf(axisStyle, option.key)?.let { setOption(option.key, it) } }
+        val scaleX = api.axisOf(axisStyle, ClockAxes.FRAME_SCALE_X_KEY)
+        val scaleY = api.axisOf(axisStyle, ClockAxes.FRAME_SCALE_Y_KEY)
+        val shiftX = api.axisOf(axisStyle, ClockAxes.FRAME_SHIFT_X_KEY)
+        if (scaleX != null || scaleY != null || shiftX != null) setFrame(ClockFrame.of(scaleX, scaleY, shiftX))
         val mode = api.axisOf(axisStyle, ClockAxes.POSITION_KEY)
         val share = api.axisOf(axisStyle, ClockAxes.POSITION_SHARE_KEY)
         if (mode != null || share != null) setPosition(mode, share)
@@ -207,6 +213,20 @@ internal class ClockFaceAdapter(
         val shown = if (size == FaceSize.SMALL) ClockAxes.SMALL_CLOCK_SIZE_STEP else step
         timeChanges++
         (face as? ResizableClockFace)?.setSize(ClockAxes.sizeOf(shown, sizeSteps))
+    }
+
+    /** Whether a person can stretch and move this face by hand ([FramedClockFace]). */
+    val isFramed: Boolean get() = face is FramedClockFace
+
+    /** The frame shown now. */
+    var frame: ClockFrame = ClockFrame.NATURAL
+        private set
+
+    /** Stretches and moves the face as [frame] says; a face that keeps its own proportions has nothing to change. */
+    fun setFrame(frame: ClockFrame) {
+        this.frame = frame
+        timeChanges++
+        (face as? FramedClockFace)?.setFrame(frame)
     }
 
     /** Shows the step a stored value chooses for the option under [key]; an option the style lacks is ignored. */

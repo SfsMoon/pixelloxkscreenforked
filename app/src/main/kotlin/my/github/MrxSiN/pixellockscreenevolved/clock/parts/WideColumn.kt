@@ -16,6 +16,14 @@ import android.widget.LinearLayout
  */
 class WideColumn(context: Context) : LinearLayout(context) {
 
+    /** How far, in pixels, the column is moved right of where it is kept centred, as a person moved it. */
+    var shift: Float = 0f
+        set(value) {
+            if (field == value) return
+            field = value
+            place()
+        }
+
     init {
         orientation = VERTICAL
         // A rolling digit, or glass's glow, may pass a little beyond the time's own box.
@@ -32,8 +40,12 @@ class WideColumn(context: Context) : LinearLayout(context) {
 
     override fun onLayout(changed: Boolean, l: Int, t: Int, r: Int, b: Int) {
         super.onLayout(changed, l, t, r, b)
+        place()
+    }
+
+    private fun place() {
         val room = (parent as? View)?.width ?: return
-        val shift = if (left == 0 && width > room) (room - width) / 2f else 0f
-        if (translationX != shift) translationX = shift
+        val centring = if (left == 0 && width > room) (room - width) / 2f else 0f
+        if (translationX != centring + shift) translationX = centring + shift
     }
 }

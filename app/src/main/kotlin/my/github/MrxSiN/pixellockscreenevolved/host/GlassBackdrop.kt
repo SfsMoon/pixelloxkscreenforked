@@ -11,12 +11,8 @@ import java.util.Collections
 import java.util.WeakHashMap
 import java.util.concurrent.Executors
 
-import kotlin.math.max
-import kotlin.math.roundToInt
-
 import my.github.MrxSiN.pixellockscreenevolved.clock.Backdrop
 import my.github.MrxSiN.pixellockscreenevolved.clock.BackdropClockFace
-import my.github.MrxSiN.pixellockscreenevolved.core.BoxBlur
 
 /**
  * The lock screen photo behind every face that draws through it
@@ -55,14 +51,17 @@ internal class GlassBackdrop(
                 faces[face] = follower
                 follower.show(photo)
             }
+            // The photo is handed on only as SystemUI draws one it has not drawn before; one drawn before this
+            // module was loaded, or reloaded, is asked for again, and comes with the next draw, as the screen wakes.
+            if (photo == null) feed.forgetPhoto()
         }
     }
 
     override fun onPhoto(photo: Bitmap, surface: WallpaperPlacement.Size, key: String, context: Context) {
         // The engine may let its photo go once this returns, so the small copy is made now and blurred later.
-        val small = shrink(photo) ?: return
+        val small = GlassPhoto.shrink(photo) ?: return
         worker.execute {
-            val blurred = blur(small)
+            val blurred = GlassPhoto.blur(small)
             main.post {
                 val next = Photo(blurred, surface)
                 this.photo = next
@@ -142,28 +141,6 @@ internal class GlassBackdrop(
                 toView.postConcat(rootToView)
                 return true
             }
-        }
-    }
-
-    private companion object {
-        /** The longest side the blurred photo is kept at: it is blurred anyway, and drawn through small figures. */
-        const val LONGEST_SIDE = 360f
-
-        /** The blur at that size, which comes to several dozen pixels on screen, as frosted glass softens. */
-        const val BLUR_RADIUS = 4
-
-        fun shrink(photo: Bitmap): Bitmap? = runCatching {
-            if (photo.isRecycled) return null
-            val scale = minOf(1f, LONGEST_SIDE / max(photo.width, photo.height))
-            val small = Bitmap.createScaledBitmap(photo, (photo.width * scale).roundToInt().coerceAtLeast(1), (photo.height * scale).roundToInt().coerceAtLeast(1), true)
-            if (small.config == Bitmap.Config.HARDWARE) small.copy(Bitmap.Config.ARGB_8888, false) else small
-        }.getOrNull()
-
-        fun blur(picture: Bitmap): Bitmap {
-            val pixels = IntArray(picture.width * picture.height)
-            picture.getPixels(pixels, 0, picture.width, 0, 0, picture.width, picture.height)
-            BoxBlur.blur(pixels, picture.width, picture.height, BLUR_RADIUS)
-            return Bitmap.createBitmap(pixels, picture.width, picture.height, Bitmap.Config.ARGB_8888)
         }
     }
 }

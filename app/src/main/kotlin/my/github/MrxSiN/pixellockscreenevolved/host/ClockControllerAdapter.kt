@@ -4,6 +4,7 @@ import android.content.Context
 
 import java.io.PrintWriter
 
+import my.github.MrxSiN.pixellockscreenevolved.clock.ClockFrame
 import my.github.MrxSiN.pixellockscreenevolved.clock.ClockStyle
 import my.github.MrxSiN.pixellockscreenevolved.clock.FaceSize
 import my.github.MrxSiN.pixellockscreenevolved.clock.WeatherClockFace
@@ -36,6 +37,13 @@ internal class ClockControllerAdapter(
             it.setSizeStep(sizeStep)
         }
         large.setPosition(api.axis(settings, ClockAxes.POSITION_KEY), api.axis(settings, ClockAxes.POSITION_SHARE_KEY))
+        large.setFrame(
+            ClockFrame.of(
+                api.axis(settings, ClockAxes.FRAME_SCALE_X_KEY),
+                api.axis(settings, ClockAxes.FRAME_SCALE_Y_KEY),
+                api.axis(settings, ClockAxes.FRAME_SHIFT_X_KEY),
+            ),
+        )
         style.options.forEach { option ->
             val stored = api.axis(settings, option.key)
             faces.forEach { it.setOption(option.key, stored) }
@@ -56,6 +64,11 @@ internal class ClockControllerAdapter(
     /** Shows [step] of the option under [key] on both faces at once, as the picker's option sliders move. */
     fun previewOption(key: String, step: Float) {
         faces.forEach { it.setOption(key, step) }
+    }
+
+    /** Shows [frame] on the large face at once, as a person stretches or moves it in the preview. */
+    fun previewFrame(frame: ClockFrame) {
+        large.setFrame(frame)
     }
 
     /** Shows [position] on the large face at once, as the picker's position controls change. */

@@ -19,6 +19,7 @@ import java.util.Locale
 import my.github.MrxSiN.pixellockscreenevolved.clock.Backdrop
 import my.github.MrxSiN.pixellockscreenevolved.clock.BackdropClockFace
 import my.github.MrxSiN.pixellockscreenevolved.clock.ClockFace
+import my.github.MrxSiN.pixellockscreenevolved.clock.ClockFrame
 import my.github.MrxSiN.pixellockscreenevolved.clock.ClockOption
 import my.github.MrxSiN.pixellockscreenevolved.clock.ClockStyle
 import my.github.MrxSiN.pixellockscreenevolved.clock.ClockWeather
@@ -27,6 +28,7 @@ import my.github.MrxSiN.pixellockscreenevolved.clock.DozingClockFace
 import my.github.MrxSiN.pixellockscreenevolved.clock.EdgeToEdgeClockFace
 import my.github.MrxSiN.pixellockscreenevolved.clock.FaceSize
 import my.github.MrxSiN.pixellockscreenevolved.clock.FontSource
+import my.github.MrxSiN.pixellockscreenevolved.clock.FramedClockFace
 import my.github.MrxSiN.pixellockscreenevolved.clock.ResizableClockFace
 import my.github.MrxSiN.pixellockscreenevolved.clock.WeatherClockFace
 import my.github.MrxSiN.pixellockscreenevolved.clock.parts.ClockThumbnail
@@ -81,7 +83,7 @@ class PosterClockStyle(private val font: PosterFont, private val fonts: FontSour
         fonts.typeface(context, font.asset) ?: Typeface.create("sans-serif-condensed", Typeface.BOLD)
 
     private inner class Face(context: Context, private val size: FaceSize, typeface: Typeface) :
-        ClockFace, ResizableClockFace, DozingClockFace, WeatherClockFace, ConfigurableClockFace, EdgeToEdgeClockFace, BackdropClockFace {
+        ClockFace, ResizableClockFace, DozingClockFace, WeatherClockFace, ConfigurableClockFace, EdgeToEdgeClockFace, BackdropClockFace, FramedClockFace {
 
         private val context = context
         private val shortSide = context.resources.displayMetrics.let { minOf(it.widthPixels, it.heightPixels) }.toFloat()
@@ -94,13 +96,15 @@ class PosterClockStyle(private val font: PosterFont, private val fonts: FontSour
         private var minuteLook = font.minuteLook
         private var heightShare = font.heights.initialShare
         private var weightShare = font.weights.initialShare
-        private var stretch = 1f
+        private var frame = ClockFrame.NATURAL
         private var shownSize = 0f
 
         /** How much smaller than laid out the host draws the face ([setDrawnScale]). */
         private var drawnScale = 1f
 
-        override val view: View = WideColumn(context).apply {
+        private val column = WideColumn(context)
+
+        override val view: View = column.apply {
             gravity = Gravity.CENTER_HORIZONTAL
             layoutParams = ViewGroup.LayoutParams(WRAP, WRAP)
             date?.let { addView(it.view, LinearLayout.LayoutParams(WRAP, WRAP).apply { gravity = Gravity.CENTER_HORIZONTAL }) }
@@ -139,7 +143,9 @@ class PosterClockStyle(private val font: PosterFont, private val fonts: FontSour
                 time.fit(shortSide * SMALL_TO_SHORT_SIDE, maxWidth = shortSide * SMALL_MAX_WIDTH)
                 return
             }
-            time.fit(shortSide * (font.smallest + (font.largest - font.smallest) * size.coerceIn(0f, 1f)), maxWidth = columnWidth())
+            val sized = shortSide * (font.smallest + (font.largest - font.smallest) * size.coerceIn(0f, 1f))
+            time.fit(sized * frame.scaleY, maxWidth = columnWidth())
+            column.shift = frame.shiftX * windowWidth() / drawnScale
             (time.layoutParams as? ViewGroup.MarginLayoutParams)?.let {
                 it.topMargin = (shortSide * DATE_GAP).toInt()
                 time.layoutParams = it
@@ -156,17 +162,25 @@ class PosterClockStyle(private val font: PosterFont, private val fonts: FontSour
 
         override fun setBackdrop(backdrop: Backdrop?) = time.setBackdrop(backdrop)
 
+        /** Stretches and moves the large face as a person framed it by hand; the small face keeps its place beside notifications. */
+        override fun setFrame(frame: ClockFrame) {
+            if (size == FaceSize.SMALL || frame == this.frame) return
+            this.frame = frame
+            time.setCut(heightShare, weightShare, frame.scaleX)
+            setSize(shownSize)
+        }
+
         /**
          * The width the line may span, in the face's own pixels: its window's
          * width less the lock screen's text margin at either edge, as drawn. The
          * lock screen lays the clock out narrower than that; the column lets
          * the line run past its box ([WideColumn]).
          */
-        private fun columnWidth(): Float {
-            val window = time.rootView.width.takeIf { it > 0 && time.isAttachedToWindow }
-                ?: context.resources.displayMetrics.widthPixels
-            return (window - 2 * EdgeToEdgeClockFace.EDGE_DP * density) / drawnScale
-        }
+        private fun columnWidth(): Float = (windowWidth() - 2 * EdgeToEdgeClockFace.EDGE_DP * density) / drawnScale
+
+        /** The width of the window the face is shown in: in a preview, not the device's. */
+        private fun windowWidth(): Float = (time.rootView.width.takeIf { it > 0 && time.isAttachedToWindow }
+            ?: context.resources.displayMetrics.widthPixels).toFloat()
 
         override fun setWeather(weather: ClockWeather?) {
             date?.setWeather(weather)
@@ -179,11 +193,10 @@ class PosterClockStyle(private val font: PosterFont, private val fonts: FontSour
                 PosterOptions.OPACITY_KEY -> return time.setOpacity(PosterOptions.opacityOf(step))
                 PosterOptions.HEIGHT_KEY -> heightShare = PosterOptions.axisShareOf(step)
                 PosterOptions.WEIGHT_KEY -> weightShare = PosterOptions.axisShareOf(step)
-                PosterOptions.STRETCH_KEY -> stretch = PosterOptions.stretchOf(step)
                 else -> return
             }
             time.setLooks(hourLook, minuteLook)
-            time.setCut(heightShare, weightShare, stretch)
+            time.setCut(heightShare, weightShare, frame.scaleX)
         }
     }
 

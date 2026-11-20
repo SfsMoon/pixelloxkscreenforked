@@ -24,6 +24,15 @@ internal object ClockAxes {
     const val POSITION_SHARE_KEY = "PIXEL_LOCK_SCREEN_EVOLVED_POSITION_Y"
 
     /**
+     * How a person stretched and moved a face by hand in the preview
+     * ([my.github.MrxSiN.pixellockscreenevolved.clock.ClockFrame]): times as
+     * wide, times as tall, and how far across, against the screen's width.
+     */
+    const val FRAME_SCALE_X_KEY = "PIXEL_LOCK_SCREEN_EVOLVED_FRAME_SCALE_X"
+    const val FRAME_SCALE_Y_KEY = "PIXEL_LOCK_SCREEN_EVOLVED_FRAME_SCALE_Y"
+    const val FRAME_SHIFT_X_KEY = "PIXEL_LOCK_SCREEN_EVOLVED_FRAME_SHIFT_X"
+
+    /**
      * Stops on the picker's "Clock face width" slider, the widest and lightest
      * first, as Google's flex clock orders its own seven
      * ([my.github.MrxSiN.pixellockscreenevolved.clock.ios.FlexClockNumerals]).

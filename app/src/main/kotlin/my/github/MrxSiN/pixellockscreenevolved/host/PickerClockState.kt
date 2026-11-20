@@ -4,6 +4,7 @@ import java.util.Collections
 import java.util.concurrent.ConcurrentHashMap
 import java.util.WeakHashMap
 
+import my.github.MrxSiN.pixellockscreenevolved.clock.ClockFrame
 import my.github.MrxSiN.pixellockscreenevolved.clock.ClockOption
 
 /**
@@ -31,6 +32,11 @@ internal class PickerClockState(private val api: ClockPluginApi) {
     var chosenPosition: ClockPosition? = null
         private set
 
+    /** The frame a person stretched and moved the clock to since the picker opened, or null if they did not. */
+    @Volatile
+    var chosenFrame: ClockFrame? = null
+        private set
+
     /** The step each option was moved to since the picker opened, by key, with the option it was chosen for. */
     private val chosenOptions = ConcurrentHashMap<String, Pair<ClockOption, Int>>()
 
@@ -53,6 +59,23 @@ internal class PickerClockState(private val api: ClockPluginApi) {
         synchronized(previews) { previews.toList() }.forEach { it.previewSizeStep(step) }
         choiceListeners.forEach { it() }
     }
+
+    /** Records [frame], shows it on every preview clock, and tells whoever listens. */
+    fun chooseFrame(frame: ClockFrame) {
+        chosenFrame = frame
+        synchronized(previews) { previews.toList() }.forEach { it.previewFrame(frame) }
+        choiceListeners.forEach { it() }
+    }
+
+    /** The frame the setting in effect stores. */
+    fun storedFrame(): ClockFrame = ClockFrame.of(
+        storedAxis(ClockAxes.FRAME_SCALE_X_KEY),
+        storedAxis(ClockAxes.FRAME_SCALE_Y_KEY),
+        storedAxis(ClockAxes.FRAME_SHIFT_X_KEY),
+    )
+
+    /** The frame shown now: the one chosen since the picker opened, or the stored one. */
+    fun shownFrame(): ClockFrame = chosenFrame ?: storedFrame()
 
     /** Records [step] of [option], shows it on every preview clock, and tells whoever listens. */
     fun chooseOption(option: ClockOption, step: Int) {
@@ -87,7 +110,10 @@ internal class PickerClockState(private val api: ClockPluginApi) {
     fun isOptionEdited(): Boolean = chosenOptions.values.any { (option, step) -> step != option.stepOf(storedAxis(option.key)) }
 
     /** Whether the size, the position or an option chosen differs from what the setting in effect stores. */
-    fun isAxisEdited(): Boolean = isSizeStepEdited() || isPositionEdited() || isOptionEdited()
+    fun isAxisEdited(): Boolean = isSizeStepEdited() || isPositionEdited() || isOptionEdited() || isFrameEdited()
+
+    /** Whether the frame chosen differs from the one the setting in effect stores. */
+    fun isFrameEdited(): Boolean = chosenFrame?.let { it != storedFrame() } ?: false
 
     /** The axes chosen since the picker opened, for a preset to carry to the preview and to Apply. */
     fun chosenAxes(): Map<String, Float> = buildMap {
@@ -97,6 +123,11 @@ internal class PickerClockState(private val api: ClockPluginApi) {
             put(ClockAxes.POSITION_SHARE_KEY, it.share)
         }
         chosenOptions.forEach { (key, chosen) -> put(key, chosen.second.toFloat()) }
+        chosenFrame?.let {
+            put(ClockAxes.FRAME_SCALE_X_KEY, it.scaleX)
+            put(ClockAxes.FRAME_SCALE_Y_KEY, it.scaleY)
+            put(ClockAxes.FRAME_SHIFT_X_KEY, it.shiftX)
+        }
     }
 
     /** The position the setting in effect stores. */
@@ -130,6 +161,7 @@ internal class PickerClockState(private val api: ClockPluginApi) {
         chosenSizeStep = null
         chosenPosition = null
         chosenOptions.clear()
+        chosenFrame = null
         isEditingPosition = false
     }
 

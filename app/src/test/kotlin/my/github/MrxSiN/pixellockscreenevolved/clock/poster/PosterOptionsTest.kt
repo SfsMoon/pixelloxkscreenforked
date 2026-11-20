@@ -55,12 +55,4 @@ class PosterOptionsTest {
         assertEquals("1000", bold.getValue(PosterOptions.HEIGHT_KEY).values.last())
         assertEquals(0.5f, PosterOptions.axisShareOf(5), 1e-6f)
     }
-
-    @Test
-    fun theWidthSliderStartsAtTheDesignedWidth() {
-        val stretch = PosterOptions.of(PosterFont.TALL).single { it.key == PosterOptions.STRETCH_KEY }
-        assertEquals(1f, PosterOptions.stretchOf(stretch.defaultStep), 1e-6f)
-        assertEquals(0.6f, PosterOptions.stretchOf(0), 1e-6f)
-        assertEquals(1.6f, PosterOptions.stretchOf(99), 1e-6f)
-    }
 }

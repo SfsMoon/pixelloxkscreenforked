@@ -1,5 +1,6 @@
 package my.github.MrxSiN.pixellockscreenevolved.host
 
+import my.github.MrxSiN.pixellockscreenevolved.clock.ClockFrame
 import my.github.MrxSiN.pixellockscreenevolved.clock.ClockStyle
 import my.github.MrxSiN.pixellockscreenevolved.core.Logger
 import my.github.MrxSiN.pixellockscreenevolved.hook.Hooks
@@ -56,6 +57,12 @@ internal class PickerClockSettings(
             api.putAxis(settings, ClockAxes.POSITION_KEY, position.modeValue)
             api.putAxis(settings, ClockAxes.POSITION_SHARE_KEY, position.share)
             api.putAxis(settings, ClockAxes.WIDTH_AXIS_KEY, ClockAxes.WIDE_CLOCK_WIDTH)
+            val frame = state.chosenFrame
+                ?: state.storedFrame().takeIf { sameClock }
+                ?: ClockFrame.NATURAL
+            api.putAxis(settings, ClockAxes.FRAME_SCALE_X_KEY, frame.scaleX)
+            api.putAxis(settings, ClockAxes.FRAME_SCALE_Y_KEY, frame.scaleY)
+            api.putAxis(settings, ClockAxes.FRAME_SHIFT_X_KEY, frame.shiftX)
             style.options.forEach { option ->
                 val step = state.chosenOptionStep(option.key)
                     ?: state.storedAxis(option.key)?.takeIf { sameClock }?.let(option::stepOf)

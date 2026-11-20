@@ -17,8 +17,17 @@
   over each figure's bevel by an AGSL shader reading a height field built from
   the figures' outline, and lit at the edges. Over a live wallpaper or a preview
   of another photo it falls back to the drawn glass.
-- Height, Weight and Width sliders for the Poster clocks: the fonts' `HGHT` and
-  `wght` axes, and a stretch across from 60% to 160%.
+- Height and Weight sliders for the Poster clocks: the fonts' `HGHT` and
+  `wght` axes.
+- Poster clocks can be framed by hand in the Position tab's preview
+  (`ClockFrame`, `FramedClockFace`): dragged across as well as down, snapping
+  to the middle, and stretched wider, narrower, taller or shorter by the
+  handles at the corners of a frame drawn around the time. Stored as
+  `PIXEL_LOCK_SCREEN_EVOLVED_FRAME_*` axes.
+- Glass in Wallpaper & style's own preview, from the lock screen wallpaper
+  read through the wallpaper manager (`PickerGlassBackdrop`). In SystemUI the
+  photo is asked for again when glass has none yet, as after the module is
+  installed or reloaded.
 
 ### Fixed
 
