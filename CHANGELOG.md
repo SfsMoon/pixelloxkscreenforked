@@ -62,6 +62,10 @@
 
 ### Fixed
 
+- Poster Bold stood off to the right of the date above it, by about 3% of
+  its width: a heavy cut of the font runs its figures past their advance on
+  the right. The time is now centred by its ink, measured awake and kept
+  while dozing (`PosterTimeView`).
 - Glass showed the photo where the clock last stood while it was dragged or
   moved across: the figures now draw again before any frame they have moved
   in (`PosterTimeView`).

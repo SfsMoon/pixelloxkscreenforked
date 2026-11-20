@@ -8,6 +8,7 @@ import android.graphics.Matrix
 import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.Rect
+import android.graphics.RectF
 import android.graphics.Shader
 import android.graphics.Typeface
 import android.view.View
@@ -90,8 +91,19 @@ internal class PosterTimeView(context: Context, private val font: PosterFont, ty
     private var figuresTop = 0f
     private var figuresHeight = 0f
 
-    /** How wide the line is drawn, and the room kept around it for glass's shadow. */
+    /**
+     * How wide the line's ink is, where it starts from the first glyph's
+     * origin, and the room kept around it for glass's shadow. The line is
+     * centred by its ink, not by the font's advances: a heavy cut of these fonts
+     * leaves more room beside some figures than others, and centred by advance
+     * the time stood off to one side of the date above it. Measured awake, and
+     * kept while dozing, so the line does not slide as its strokes thin.
+     */
     private var lineWidth = 0f
+    private var inkLeft = 0f
+    private var inkMeasured = false
+    private val ink = RectF()
+    private val runInk = RectF()
     private var inset = 0
 
     fun setTime(hour: String, minute: String) {
@@ -195,7 +207,7 @@ internal class PosterTimeView(context: Context, private val font: PosterFont, ty
     override fun onDraw(canvas: Canvas) {
         if (opacity <= 0f) return
         val layer = if (opacity < 1f) canvas.saveLayerAlpha(0f, 0f, width.toFloat(), height.toFloat(), (opacity * 255).toInt()) else canvas.save()
-        val left = (width - lineWidth) / 2
+        val left = (width - lineWidth) / 2 - inkLeft
         val top = inset - figuresTop
         canvas.translate(left, top)
         val placed = placeBackdrop(left, top)
@@ -248,7 +260,6 @@ internal class PosterTimeView(context: Context, private val font: PosterFont, ty
         paint.fontVariationSettings = awakeCut()
         val hourWidth = paint.measureText(hourText)
         val gap = gapPerSize() * paint.textSize / PROBE_SIZE
-        lineWidth = (hourWidth + gap + paint.measureText(minuteText)) * scaleX
         val hourAdvances = advances(hourText)
         val minuteAdvances = advances(minuteText)
         paint.fontVariationSettings = font.settings(heightShare, weightShare, doze)
@@ -256,8 +267,24 @@ internal class PosterTimeView(context: Context, private val font: PosterFont, ty
         outline(hours, hourText, hourAdvances, 0f)
         outline(minutes, minuteText, minuteAdvances, hourWidth + gap)
         paint.fontVariationSettings = awakeCut()
+        if (doze == 0f || !inkMeasured) measureInk(fallbackWidth = (hourWidth + gap + paint.measureText(minuteText)) * scaleX)
         // The glass's height field follows the awake figures; while dozing only its rim is drawn.
         prepare(reshaped = doze == 0f)
+    }
+
+    /** Takes the width and start of both runs' ink together, or of [fallbackWidth] from the origin where there is none. */
+    private fun measureInk(fallbackWidth: Float) {
+        hours.path.computeBounds(ink, true)
+        minutes.path.computeBounds(runInk, true)
+        if (ink.isEmpty) ink.set(runInk) else if (!runInk.isEmpty) ink.union(runInk)
+        if (ink.isEmpty) {
+            inkLeft = 0f
+            lineWidth = fallbackWidth
+        } else {
+            inkLeft = ink.left
+            lineWidth = ink.width()
+        }
+        inkMeasured = true
     }
 
     /** Each glyph of [text] centred in the awake cut's advance, from [start], stretched across. */
