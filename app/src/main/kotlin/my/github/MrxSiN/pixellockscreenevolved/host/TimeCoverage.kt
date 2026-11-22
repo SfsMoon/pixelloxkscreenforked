@@ -36,7 +36,8 @@ internal object TimeCoverage {
         val ink = Bitmap.createBitmap(ceil(time.width * scale).toInt(), ceil(time.height * scale).toInt(), Bitmap.Config.ALPHA_8)
         try {
             val canvas = Canvas(ink).apply { scale(scale, scale) }
-            time.draw(canvas)
+            // A face that cannot be drawn into a bitmap is taken as not hidden at all, rather than taking SystemUI down.
+            if (runCatching { time.draw(canvas) }.isFailure) return 0f
             val drawn = inkOf(ink)
             if (drawn == 0L) return 0f
             erase(canvas)

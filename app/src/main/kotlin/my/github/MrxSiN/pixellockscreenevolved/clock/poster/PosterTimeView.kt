@@ -69,6 +69,9 @@ internal class PosterTimeView(context: Context, private val font: PosterFont, ty
     private val sharpToView = Matrix()
     private val frostedToView = Matrix()
 
+    /** Whether the last draw showed the photo. */
+    private var throughPhoto = false
+
     /** Where the view stood in its window when it was last drawn over the photo, to tell when it has moved since. */
     private val drawnAt = Matrix()
     private val standsAt = Matrix()
@@ -79,7 +82,8 @@ internal class PosterTimeView(context: Context, private val font: PosterFont, ty
      * drag or a stretch across does, does not draw it again by itself.
      */
     private val followMoves = ViewTreeObserver.OnPreDrawListener {
-        if (backdrop != null) {
+        // Only once the photo has been drawn: a view whose photo cannot be placed is not drawn again for it.
+        if (backdrop != null && throughPhoto) {
             standsAt.reset()
             transformMatrixToGlobal(standsAt)
             if (standsAt != drawnAt) invalidate()
@@ -178,8 +182,52 @@ internal class PosterTimeView(context: Context, private val font: PosterFont, ty
         val next = fraction.coerceIn(0f, 1f)
         if (next == doze) return
         doze = next
-        outline()
+        val shapes = dozeEnds()
+        if (shapes == null) {
+            outline()
+        } else {
+            // A frame of the doze only moves the outlines between their two ends: nothing is read from the font,
+            // and the paints, shadow and glass are kept from the awake figures, so the motion keeps its frame rate.
+            shapes.awakeHours.interpolate(shapes.dozingHours, 1f - next, hours.path)
+            shapes.awakeMinutes.interpolate(shapes.dozingMinutes, 1f - next, minutes.path)
+        }
         invalidate()
+    }
+
+    /** The outlines awake and fully dozing, for a doze to move between, made once for each time shown. */
+    private class DozeEnds(val awakeHours: Path, val awakeMinutes: Path, val dozingHours: Path, val dozingMinutes: Path)
+
+    private var ends: DozeEnds? = null
+
+    /**
+     * The outlines at both ends of the doze, made now if they are not made yet;
+     * or null where they cannot be moved between point by point, and each frame
+     * is outlined from the font instead. A variable font's cuts share their
+     * contours, so its two ends always can be.
+     */
+    private fun dozeEnds(): DozeEnds? {
+        ends?.let { return it }
+        paint.fontVariationSettings = awakeCut()
+        val hourWidth = paint.measureText(hourText)
+        val gap = gapPerSize() * paint.textSize / PROBE_SIZE
+        val hourAdvances = advances(hourText)
+        val minuteAdvances = advances(minuteText)
+        fun at(dozing: Float): Pair<Path, Path> {
+            paint.fontVariationSettings = font.settings(heightShare, weightShare, dozing)
+            val hourPath = Path().also { outlineInto(it, hourText, hourAdvances, 0f) }
+            val minutePath = Path().also { outlineInto(it, minuteText, minuteAdvances, hourWidth + gap) }
+            if (scaleX != 1f || scaleY != 1f) {
+                hourPath.transform(stretching)
+                minutePath.transform(stretching)
+            }
+            return hourPath to minutePath
+        }
+        stretching.setScale(scaleX, scaleY)
+        val (awakeHours, awakeMinutes) = at(0f)
+        val (dozingHours, dozingMinutes) = at(1f)
+        paint.fontVariationSettings = awakeCut()
+        if (!awakeHours.isInterpolatable(dozingHours) || !awakeMinutes.isInterpolatable(dozingMinutes)) return null
+        return DozeEnds(awakeHours, awakeMinutes, dozingHours, dozingMinutes).also { ends = it }
     }
 
     fun setBackdrop(backdrop: Backdrop?) {
@@ -212,7 +260,10 @@ internal class PosterTimeView(context: Context, private val font: PosterFont, ty
         val left = (width - lineWidth) / 2 - inkLeft
         val top = inset - figuresTop
         canvas.translate(left, top)
-        val placed = placeBackdrop(left, top)
+        // A drawing into a bitmap, as the depth effect measures how much of the time its subject hides, has no
+        // use for the glass's shader, and draws the glass from its outline alone.
+        val placed = canvas.isHardwareAccelerated && placeBackdrop(left, top)
+        if (canvas.isHardwareAccelerated) throughPhoto = placed
         val sharp = sharpShader.takeIf { placed }
         val frosted = frostedShader.takeIf { placed }
         hours.draw(canvas, doze, sharp, frosted)
@@ -259,6 +310,7 @@ internal class PosterTimeView(context: Context, private val font: PosterFont, ty
 
     /** Outlines both runs in the cut shown now, placed by the awake cut's advances so nothing shifts as it thins. */
     private fun outline() {
+        ends = null
         paint.fontVariationSettings = awakeCut()
         val hourWidth = paint.measureText(hourText)
         val gap = gapPerSize() * paint.textSize / PROBE_SIZE

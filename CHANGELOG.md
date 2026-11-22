@@ -62,6 +62,17 @@
 
 ### Fixed
 
+- The Poster clocks stuttered going into and out of the always-on display,
+  most at large sizes: every frame of the doze outlined each figure from the
+  font again and rebuilt its paints and blurred shadow. The outlines at both
+  ends of the doze are made once and moved between point by point
+  (`Path.interpolate`), with the paints, shadow and glass kept from the
+  awake figures.
+- Defences around the depth effect with a Poster clock: drawn into a bitmap to
+  measure how much of the time the subject hides, the glass is drawn without
+  its shader, and a face that cannot be drawn there is taken as not hidden
+  rather than failing (`TimeCoverage`); the figures follow their own moves only
+  once the photo has been drawn through them.
 - Poster Bold stood off to the right of the date above it, by about 3% of
   its width: a heavy cut of the font runs its figures past their advance on
   the right. The time is now centred by the ink of the widest time it can
