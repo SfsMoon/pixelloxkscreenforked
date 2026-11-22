@@ -82,6 +82,12 @@
 
 ### Fixed
 
+- Notifications under a clock of this module's stood as low as if SystemUI's
+  date row and smartspace card were still there: hidden, both were invisible
+  and kept their room in the scene, which lays them out above the clock. Both
+  are now gone while hidden, so the notifications come up under the clock; a
+  date row SystemUI shows again, as while the clock changes size, is hidden
+  again (`ComposedSmartspacePlacement`).
 - The depth effect's subject stood off the photo, moved and resized, after it
   was refined by hand: what is drawn over the wallpaper was placed taking its
   picture's size for the wallpaper surface's, and the photo kept on disk had

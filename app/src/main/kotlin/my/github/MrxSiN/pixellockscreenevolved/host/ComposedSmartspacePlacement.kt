@@ -31,6 +31,7 @@ internal class ComposedSmartspacePlacement {
     private val followed = Collections.newSetFromMap(WeakHashMap<View, Boolean>())
     private val hiddenRows = WeakHashMap<View, Int>()
     private val hiddenCards = Collections.newSetFromMap(WeakHashMap<View, Boolean>())
+    private val fadingOut = Collections.newSetFromMap(WeakHashMap<View, Boolean>())
     private val glides = WeakHashMap<View, Glide>()
 
     /**
@@ -74,26 +75,30 @@ internal class ComposedSmartspacePlacement {
     private fun placeRow(row: View) {
         if (!row.isAttachedToWindow) return
         if (ModuleClockFaces.writesDateIn(row.rootView)) {
-            // Translating a Compose child can be clipped by its interop holder, so the row is hidden in place.
-            if (row.visibility == View.VISIBLE && !hiddenRows.containsKey(row)) {
-                hiddenRows[row] = row.visibility
+            // Translating a Compose child can be clipped by its interop holder, so the row is hidden rather than
+            // moved, and gone rather than invisible: the scene lays it out above the clock, and room kept for it
+            // there pushed the notifications under the clock down by as much. Shown again by SystemUI, as it does
+            // while the clock changes size, it is hidden again.
+            if (row.visibility == View.VISIBLE && row !in fadingOut) {
+                if (!hiddenRows.containsKey(row)) hiddenRows[row] = View.VISIBLE
                 fade(row, show = false)
             }
             return
         }
         hiddenRows.remove(row)?.let { original ->
-            if (original == View.VISIBLE) fade(row, show = true) else row.visibility = original
+            if (original == View.VISIBLE && row.visibility != View.VISIBLE) fade(row, show = true) else if (original != View.VISIBLE) row.visibility = original
         }
     }
 
     private fun placeCard(card: View, beforeDraw: Boolean) {
         // A face may leave the card out; SystemUI's own GONE, while the card is empty, is never overridden.
+        // Gone rather than invisible, so the notifications under the clock come up into the room it took.
         if (ModuleClockFaces.hidesCardIn(card.rootView)) {
             if (card.visibility == View.VISIBLE) {
                 hiddenCards.add(card)
-                card.visibility = View.INVISIBLE
+                card.visibility = View.GONE
             }
-        } else if (hiddenCards.remove(card) && card.visibility == View.INVISIBLE) {
+        } else if (hiddenCards.remove(card) && card.visibility == View.GONE) {
             card.visibility = View.VISIBLE
         }
         moveUnder(card, ModuleClockFaces.largeIn(card.rootView), LockScreenInsets.cardGap(card.context), beforeDraw)
@@ -102,13 +107,16 @@ internal class ComposedSmartspacePlacement {
     /** Fades the date [row] out, then hides it, or shows it and fades it in, as the clock beside it changes size. */
     private fun fade(row: View, show: Boolean) {
         row.animate().cancel()
+        fadingOut.remove(row)
         if (show) {
             row.alpha = 0f
             row.visibility = View.VISIBLE
             row.animate().alpha(1f).setDuration(ROW_FADE_MS).start()
         } else {
+            fadingOut.add(row)
             row.animate().alpha(0f).setDuration(ROW_FADE_MS).withEndAction {
-                if (hiddenRows.containsKey(row)) row.visibility = View.INVISIBLE
+                fadingOut.remove(row)
+                if (hiddenRows.containsKey(row)) row.visibility = View.GONE
                 row.alpha = 1f
             }.start()
         }
