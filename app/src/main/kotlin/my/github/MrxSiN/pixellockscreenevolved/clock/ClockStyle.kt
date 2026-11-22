@@ -133,3 +133,12 @@ data class ClockWeather(
 interface WeatherClockFace {
     fun setWeather(weather: ClockWeather?)
 }
+
+/**
+ * A face that says whether SystemUI's smartspace card (forecasts, events,
+ * parcels) is shown with it. Kept apart from [ClockFace] so a face with no say
+ * in it is never made to answer.
+ */
+interface SmartspaceClockFace : ClockFace {
+    val showsSmartspace: Boolean
+}

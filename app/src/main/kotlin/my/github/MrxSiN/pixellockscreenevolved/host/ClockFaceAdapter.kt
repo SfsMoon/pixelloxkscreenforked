@@ -17,6 +17,7 @@ import my.github.MrxSiN.pixellockscreenevolved.clock.EdgeToEdgeClockFace
 import my.github.MrxSiN.pixellockscreenevolved.clock.ExpressiveClockFace
 import my.github.MrxSiN.pixellockscreenevolved.clock.FaceSize
 import my.github.MrxSiN.pixellockscreenevolved.clock.ResizableClockFace
+import my.github.MrxSiN.pixellockscreenevolved.clock.SmartspaceClockFace
 
 /**
  * One [ClockFace] presented to SystemUI as a `ClockFaceController`.
@@ -160,7 +161,7 @@ internal class ClockFaceAdapter(
     init {
         face.view.id = api.viewId(size)
         face.view.tag = ModuleClockFaceTag
-        ModuleClockFaces.track(face.view, size, face.drawsDate)
+        ModuleClockFaces.track(face, size)
         // The rows under a small clock are spaced against SystemUI's own band for it ([LockScreenInsets]).
         if (size == FaceSize.SMALL) face.view.minimumHeight = LockScreenInsets.smallClockHeight(context)
         if (api.elements != null && context.packageName == SYSTEMUI_PACKAGE) {
@@ -273,23 +274,30 @@ internal object ModuleClockFaceTag
 internal object ModuleClockFaces {
 
     /** A face tracked without keeping it alive. */
-    private class Tracked(view: View, var size: FaceSize, var drawsDate: Boolean) {
-        val view = WeakReference(view)
+    private class Tracked(face: ClockFace, var size: FaceSize) {
+        val face = WeakReference(face)
+        val view = WeakReference(face.view)
     }
 
     // A list walked by index: [largeIn] runs before every frame the lock screen draws, and a map's walk
     // allocates an iterator each time.
     private val faces = ArrayList<Tracked>()
 
-    fun track(view: View, size: FaceSize, drawsDate: Boolean) = synchronized(faces) {
+    fun track(face: ClockFace, size: FaceSize) = synchronized(faces) {
         faces.removeAll { it.view.get() == null }
-        val tracked = faces.firstOrNull { it.view.get() === view }
-        if (tracked != null) {
-            tracked.size = size
-            tracked.drawsDate = drawsDate
-        } else {
-            faces += Tracked(view, size, drawsDate)
+        val tracked = faces.firstOrNull { it.view.get() === face.view }
+        if (tracked != null) tracked.size = size else faces += Tracked(face, size)
+    }
+
+    /** Whether a module face shown in [root] asks for SystemUI's smartspace card to be left out ([SmartspaceClockFace]). */
+    fun hidesCardIn(root: View): Boolean = synchronized(faces) {
+        for (i in faces.indices) {
+            val face = faces[i].face.get() as? SmartspaceClockFace ?: continue
+            if (face.showsSmartspace) continue
+            val view = face.view
+            if (view.isAttachedToWindow && view.isShown && view.rootView === root) return@synchronized true
         }
+        false
     }
 
     /**
@@ -300,7 +308,7 @@ internal object ModuleClockFaces {
     fun writesDateIn(root: View): Boolean = synchronized(faces) {
         for (i in faces.indices) {
             val tracked = faces[i]
-            if (!tracked.drawsDate && tracked.size != FaceSize.LARGE) continue
+            if (tracked.size != FaceSize.LARGE && tracked.face.get()?.drawsDate != true) continue
             val view = tracked.view.get() ?: continue
             if (view.isAttachedToWindow && view.isShown && view.rootView === root) return@synchronized true
         }

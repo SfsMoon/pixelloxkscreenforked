@@ -47,6 +47,11 @@
 
 ### Changed
 
+- A Smartspace option for the Poster clocks, hidden at first: SystemUI's
+  smartspace card (forecasts, events) is left out with the clock, as other
+  systems keep the lock screen to the clock (`SmartspaceClockFace`,
+  `ModuleClockFaces.hidesCardIn`). SystemUI's own hiding of an empty card is
+  never overridden.
 - With notifications, a Poster clock stays itself, smaller, rather than
   swapping for a small clock (`ClockStyle.smallFaceFollowsLarge`): the small
   face is the large one, with its date above, its look, frame and place

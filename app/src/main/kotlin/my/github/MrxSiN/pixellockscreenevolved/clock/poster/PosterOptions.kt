@@ -22,6 +22,10 @@ object PosterOptions {
     const val HEIGHT_KEY = "PIXEL_LOCK_SCREEN_EVOLVED_FIGURE_HEIGHT"
     const val WEIGHT_KEY = "PIXEL_LOCK_SCREEN_EVOLVED_FIGURE_WEIGHT"
     const val DATE_KEY = "PIXEL_LOCK_SCREEN_EVOLVED_DATE_PLACE"
+    const val SMARTSPACE_KEY = "PIXEL_LOCK_SCREEN_EVOLVED_SMARTSPACE"
+
+    /** The smartspace slider's stops: the card hidden, as other systems keep the lock screen to the clock, or shown. */
+    private val SMARTSPACE = listOf("Hidden", "Shown")
 
     /** Opacity at each step, in percent, the faintest first. */
     private val OPACITY_PERCENT = (1..10).map { it * 10 }
@@ -37,7 +41,11 @@ object PosterOptions {
         axis(HEIGHT_KEY, "Height", font.heights),
         axis(WEIGHT_KEY, "Weight", font.weights),
         ClockOption(DATE_KEY, "Date", DatePlace.entries.map { it.title }, DatePlace.ABOVE.ordinal),
+        ClockOption(SMARTSPACE_KEY, "Smartspace", SMARTSPACE, 0),
     ) + GlassLook.options
+
+    /** Whether SystemUI's smartspace card is shown at [step]. */
+    fun showsSmartspaceAt(step: Int): Boolean = step >= 1
 
     /** Where the date is stored at [step]. */
     fun datePlaceOf(step: Int): DatePlace = DatePlace.entries[step.coerceIn(0, DatePlace.entries.lastIndex)]

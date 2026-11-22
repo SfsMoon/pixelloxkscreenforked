@@ -30,6 +30,7 @@ import my.github.MrxSiN.pixellockscreenevolved.clock.FaceSize
 import my.github.MrxSiN.pixellockscreenevolved.clock.FontSource
 import my.github.MrxSiN.pixellockscreenevolved.clock.FramedClockFace
 import my.github.MrxSiN.pixellockscreenevolved.clock.ResizableClockFace
+import my.github.MrxSiN.pixellockscreenevolved.clock.SmartspaceClockFace
 import my.github.MrxSiN.pixellockscreenevolved.clock.WeatherClockFace
 import my.github.MrxSiN.pixellockscreenevolved.clock.parts.ClockThumbnail
 import my.github.MrxSiN.pixellockscreenevolved.clock.parts.DateLine
@@ -89,7 +90,7 @@ class PosterClockStyle(private val font: PosterFont, private val fonts: FontSour
         fonts.typeface(context, font.asset) ?: Typeface.create("sans-serif-condensed", Typeface.BOLD)
 
     private inner class Face(context: Context, private val size: FaceSize, typeface: Typeface) :
-        ClockFace, ResizableClockFace, DozingClockFace, WeatherClockFace, ConfigurableClockFace, EdgeToEdgeClockFace, BackdropClockFace, FramedClockFace {
+        ClockFace, ResizableClockFace, DozingClockFace, WeatherClockFace, ConfigurableClockFace, EdgeToEdgeClockFace, BackdropClockFace, FramedClockFace, SmartspaceClockFace {
 
         private val context = context
         private val shortSide = context.resources.displayMetrics.let { minOf(it.widthPixels, it.heightPixels) }.toFloat()
@@ -130,6 +131,9 @@ class PosterClockStyle(private val font: PosterFont, private val fonts: FontSour
         }
         override val timeView: View get() = time
         override val drawsDate: Boolean = true
+
+        override var showsSmartspace: Boolean = false
+            private set
 
         init {
             time.setLooks(hourLook, minuteLook)
@@ -235,6 +239,11 @@ class PosterClockStyle(private val font: PosterFont, private val fonts: FontSour
                 PosterOptions.HEIGHT_KEY -> heightShare = PosterOptions.axisShareOf(step)
                 PosterOptions.WEIGHT_KEY -> weightShare = PosterOptions.axisShareOf(step)
                 PosterOptions.DATE_KEY -> return placeDate(PosterOptions.datePlaceOf(step))
+                PosterOptions.SMARTSPACE_KEY -> {
+                    showsSmartspace = PosterOptions.showsSmartspaceAt(step)
+                    // The lock screen places the card before its next draw, which this asks for.
+                    return view.invalidate()
+                }
                 else -> {
                     glass = glass.with(key, step) ?: return
                     return time.setGlass(glass)

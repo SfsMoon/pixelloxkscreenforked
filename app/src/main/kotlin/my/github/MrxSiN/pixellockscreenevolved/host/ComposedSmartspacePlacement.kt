@@ -30,6 +30,7 @@ internal class ComposedSmartspacePlacement {
 
     private val followed = Collections.newSetFromMap(WeakHashMap<View, Boolean>())
     private val hiddenRows = WeakHashMap<View, Int>()
+    private val hiddenCards = Collections.newSetFromMap(WeakHashMap<View, Boolean>())
     private val glides = WeakHashMap<View, Glide>()
 
     /**
@@ -86,6 +87,15 @@ internal class ComposedSmartspacePlacement {
     }
 
     private fun placeCard(card: View, beforeDraw: Boolean) {
+        // A face may leave the card out; SystemUI's own GONE, while the card is empty, is never overridden.
+        if (ModuleClockFaces.hidesCardIn(card.rootView)) {
+            if (card.visibility == View.VISIBLE) {
+                hiddenCards.add(card)
+                card.visibility = View.INVISIBLE
+            }
+        } else if (hiddenCards.remove(card) && card.visibility == View.INVISIBLE) {
+            card.visibility = View.VISIBLE
+        }
         moveUnder(card, ModuleClockFaces.largeIn(card.rootView), LockScreenInsets.cardGap(card.context), beforeDraw)
     }
 
