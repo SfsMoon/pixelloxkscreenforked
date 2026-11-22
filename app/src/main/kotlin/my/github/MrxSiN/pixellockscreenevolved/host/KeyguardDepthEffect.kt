@@ -117,6 +117,39 @@ internal class KeyguardDepthEffect(
             shown[clock] = each
             each.setEnabled(enabled)
             each.show(cutout)
+            // Wallpaper & style's requests are heard, and the photo last looked at is taken back, from the first
+            // clock on: SystemUI does not draw the same photo again after it starts, or after this module reloads.
+            val at = clock.largeFace.view.context
+            if (context == null) context = at
+            watch(at)
+            restore(at)
+        }
+    }
+
+    private var restored = false
+
+    /**
+     * Takes back the photo last looked at, kept on disk ([DepthCutout.keepLatest]), where it is still the
+     * lock screen's wallpaper and no photo has been looked at since, and shows its subject from the mask
+     * kept for it. Called on the main thread, once.
+     */
+    private fun restore(context: Context) {
+        if (restored) return
+        restored = true
+        worker.execute {
+            runCatching {
+                if (latest != null) return@runCatching
+                val cutouts = cutouts(context)
+                val kept = cutouts.latest() ?: return@runCatching
+                if (kept.wallpaperId != LockWallpaperId.current(context)) return@runCatching
+                latest = Kept(context, kept.key, null).apply { packed = kept.packed }
+                val mask = cutouts.storedMask(kept.key) ?: return@runCatching
+                val photo = BitmapFactory.decodeByteArray(kept.packed, 0, kept.packed.size) ?: return@runCatching
+                photoKey = kept.key
+                publish(kept.key, cutouts.cutOut(photo, mask))
+                report(context, DepthStatus.READY)
+                logger.info("Depth effect took back the photo last looked at")
+            }.onFailure { logger.warn("The photo last looked at could not be taken back", it) }
         }
     }
 
@@ -216,7 +249,7 @@ internal class KeyguardDepthEffect(
      * photo's mask and shown at once. Called on the main thread.
      */
     private fun refine(context: Context) {
-        val last = latest ?: return
+        val last = latest ?: return logger.warn("Depth effect asked to refine with no photo looked at yet")
         logger.info("Depth effect subject opened to be refined by hand")
         worker.execute {
             runCatching {
@@ -315,7 +348,10 @@ internal class KeyguardDepthEffect(
      */
     private fun pack(kept: Kept) {
         if (latest !== kept) return
-        runCatching(kept::pack).onFailure { logger.warn("Depth effect photo could not be packed", it) }
+        runCatching {
+            kept.pack()
+            kept.packed?.let { cutouts(kept.context).keepLatest(kept.key, it, LockWallpaperId.current(kept.context)) }
+        }.onFailure { logger.warn("Depth effect photo could not be packed", it) }
     }
 
     /** Writes where the effect stands for Wallpaper & style's Depth effect page. */

@@ -68,6 +68,15 @@
 
 ### Fixed
 
+- Refine subject by hand did nothing after SystemUI started again or the
+  module reloaded: SystemUI heard Wallpaper & style's requests, and held a
+  photo, only once it drew a photo it had not drawn, which it does not do for
+  the same photo. Requests are heard from the first clock on, and the photo
+  last looked at is kept on disk with the wallpaper it was set as
+  (`DepthCutout.keepLatest`, `LockWallpaperId`); while that is still the lock
+  screen's wallpaper it is taken back, and its subject shown from the mask
+  kept for it, so the depth effect also no longer vanishes until another
+  wallpaper is set.
 - The Poster clocks stuttered going into and out of the always-on display,
   most at large sizes: every frame of the doze outlined each figure from the
   font again and rebuilt its paints and blurred shadow. The outlines at both

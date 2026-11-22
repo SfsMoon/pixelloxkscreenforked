@@ -69,6 +69,27 @@ internal class DepthCutout(cacheDirectory: File) {
         return cut
     }
 
+    /** The photo last looked at, packed, the key that names it, and the wallpaper it was set as. */
+    class Latest(val key: String, val packed: ByteArray, val wallpaperId: Int)
+
+    /**
+     * Keeps [packed], the photo [key] names, as the one last looked at, with the
+     * [wallpaperId] it was set as, so a SystemUI that starts again, or a module
+     * reloaded in it, has it before SystemUI draws the photo again, which it does
+     * not do for the same photo.
+     */
+    fun keepLatest(key: String, packed: ByteArray, wallpaperId: Int) {
+        masks.mkdirs()
+        File(masks, LATEST_PHOTO).writeBytes(packed)
+        File(masks, LATEST_META).writeText("$key\n$wallpaperId")
+    }
+
+    /** The photo last looked at, as [keepLatest] kept it, or null. */
+    fun latest(): Latest? = runCatching {
+        val (key, id) = File(masks, LATEST_META).readText().split("\n")
+        Latest(key, File(masks, LATEST_PHOTO).readBytes(), id.toInt())
+    }.getOrNull()
+
     /** A mask with no subject in it, as large as one found for [photo] would be, to be painted by hand. */
     fun emptyMask(photo: Bitmap): Bitmap {
         val scale = minOf(1f, SEGMENTATION_SIDE.toFloat() / max(photo.width, photo.height))
@@ -101,7 +122,7 @@ internal class DepthCutout(cacheDirectory: File) {
      */
     fun storeMask(key: String, mask: Bitmap) {
         masks.mkdirs()
-        masks.listFiles()?.sortedByDescending(File::lastModified)?.drop(KEPT_MASKS - 1)?.forEach(File::delete)
+        masks.listFiles { file -> file.name.endsWith(MASK_SUFFIX) }?.sortedByDescending(File::lastModified)?.drop(KEPT_MASKS - 1)?.forEach(File::delete)
         val alpha = alphaBytes(mask)
         DataOutputStream(File(masks, "$key$MASK_SUFFIX").outputStream().buffered()).use { output ->
             output.writeInt(mask.width)
@@ -114,6 +135,8 @@ internal class DepthCutout(cacheDirectory: File) {
         private const val MASK_DIRECTORY_PREFIX = "pixel_lock_screen_evolved_depth"
         private const val MASK_DIRECTORY = "${MASK_DIRECTORY_PREFIX}_${SubjectMaskContract.MODEL}"
         private const val MASK_SUFFIX = ".mask"
+        private const val LATEST_PHOTO = "latest.png"
+        private const val LATEST_META = "latest.txt"
         private const val KEY_SAMPLE = 32
         private const val OPAQUE = 255
         private const val ALPHA_SHIFT = 24

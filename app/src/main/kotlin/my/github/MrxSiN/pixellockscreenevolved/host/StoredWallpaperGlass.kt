@@ -65,8 +65,7 @@ internal class StoredWallpaperGlass(
     /** The lock screen wallpaper's id and its pictures, read again only when another one is set; or null to keep the last. */
     private fun read(context: Context): Pair<Int, GlassPhoto.Pictures>? = runCatching {
         val manager = WallpaperManager.getInstance(context)
-        val lockId = manager.getWallpaperId(WallpaperManager.FLAG_LOCK)
-        val which = if (lockId > 0) WallpaperManager.FLAG_LOCK else WallpaperManager.FLAG_SYSTEM
+        val which = LockWallpaperId.which(manager)
         val id = manager.getWallpaperId(which)
         if (id == picturesId && pictures != null) return null
         val bitmap = (manager.getDrawable(which) as? BitmapDrawable)?.bitmap ?: return null
