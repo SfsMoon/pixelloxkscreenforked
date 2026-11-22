@@ -69,6 +69,16 @@ internal class DepthCutout(cacheDirectory: File) {
         return cut
     }
 
+    /** A mask with no subject in it, as large as one found for [photo] would be, to be painted by hand. */
+    fun emptyMask(photo: Bitmap): Bitmap {
+        val scale = minOf(1f, SEGMENTATION_SIDE.toFloat() / max(photo.width, photo.height))
+        return Bitmap.createBitmap(
+            (photo.width * scale).roundToInt().coerceAtLeast(1),
+            (photo.height * scale).roundToInt().coerceAtLeast(1),
+            Bitmap.Config.ALPHA_8,
+        )
+    }
+
     /** The mask stored for the photo [key] names, or null. */
     fun storedMask(key: String): Bitmap? = runCatching {
         DataInputStream(File(masks, "$key$MASK_SUFFIX").inputStream().buffered()).use { input ->

@@ -76,3 +76,17 @@ wallpaper the service would read.
 
 `SubjectMaskCallersTest` and `NewestOnlyWorkerTest` cover the caller check and
 the coalescing.
+
+## Refining the subject by hand
+
+When the model's cut-out is wrong, the Depth effect page in Wallpaper & style
+offers **Refine subject by hand** once a photo has been looked at. It counts up
+a secure setting (`DepthRefineRequest`), and SystemUI, which holds the photo
+and its mask, opens `DepthMaskEditor` in a system dialog window over the
+picker: the photo with its subject lit and the rest dimmed, painted with a
+soft round brush that adds to the subject or erases from it. Two fingers zoom
+and move the photo; a second finger landing mid-stroke takes the stroke back.
+Save stores the painted mask as that photo's mask (`DepthCutout.storeMask`),
+where the model's would have been, and the cut-out is shown at once. A photo
+with no subject found starts from an empty mask. **Reprocess wallpaper** forgets
+the refined mask with the model's, as before.

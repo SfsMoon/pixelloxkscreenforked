@@ -6,9 +6,10 @@ import android.view.View
 /**
  * Wallpaper & style's Depth effect page: the effect's switch, where it stands
  * with the current lock screen photo as SystemUI reports it ([DepthStatus]),
- * and a way to have the photo's subject found again ([DepthReprocessRequest])
+ * a way to have the photo's subject found again ([DepthReprocessRequest])
  * where the cut-out came out wrong or none was found, without clearing
- * anything by hand.
+ * anything by hand, and a way to refine it by hand ([DepthRefineRequest]),
+ * which SystemUI opens over the picker ([DepthMaskEditor]).
  */
 internal class PickerDepthEffectPage(private val rows: PickerRows) {
 
@@ -26,8 +27,13 @@ internal class PickerDepthEffectPage(private val rows: PickerRows) {
         val status = rows.group(context)
         val state = rows.row(status, "", null) ?: return
         val action = rows.row(status, "", null) ?: return
+        val refine = rows.row(status, REFINE_TITLE, REFINE_DESCRIPTION) ?: return
         status.addView(state.view)
         status.addView(action.view)
+        status.addView(refine.view)
+        refine.view.setOnClickListener {
+            if (refine.view.isEnabled) DepthRefineRequest.ask(resolver)
+        }
         val statusTitle = rows.sectionTitle(context, STATUS_TITLE)
         page.content.addView(statusTitle)
         page.content.addView(status)
@@ -43,6 +49,8 @@ internal class PickerDepthEffectPage(private val rows: PickerRows) {
             rows.describe(action, text.actionDetail)
             action.view.visibility = if (text.action == null) View.GONE else View.VISIBLE
             rows.setEnabled(action, found != DepthStatus.FINDING)
+            // A photo looked at, with a subject or none, can be refined; one still being looked at, or none, cannot.
+            refine.view.visibility = if (found == DepthStatus.READY || found == DepthStatus.NO_SUBJECT) View.VISIBLE else View.GONE
             val shown = if (on && unavailable == null) View.VISIBLE else View.GONE
             statusTitle.visibility = shown
             status.visibility = shown
@@ -95,5 +103,7 @@ internal class PickerDepthEffectPage(private val rows: PickerRows) {
         const val TITLE = "Depth effect"
         const val DESCRIPTION = "Place the wallpaper subject in front of the clock"
         private const val STATUS_TITLE = "Wallpaper subject"
+        private const val REFINE_TITLE = "Refine subject by hand"
+        private const val REFINE_DESCRIPTION = "Paint what stands in front of the clock, or erase what should not"
     }
 }

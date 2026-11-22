@@ -34,13 +34,12 @@ internal enum class DepthStatus(val value: Int) {
 }
 
 /**
- * Wallpaper & style asking SystemUI to find the current photo's subject again,
- * more carefully, and to forget the mask it keeps for it. Each ask counts up,
- * so asking twice is seen twice.
+ * Wallpaper & style asking SystemUI for something, through a secure setting
+ * named [key]. Each ask counts up, so asking twice is seen twice.
  */
-internal object DepthReprocessRequest {
+internal open class SecureRequest(key: String) {
 
-    private val setting = SecureIntSetting("pixel_lock_screen_evolved_depth_reprocess", 0)
+    private val setting = SecureIntSetting(key, 0)
 
     fun ask(resolver: ContentResolver) = setting.put(resolver, setting.get(resolver) + 1)
 
@@ -56,3 +55,15 @@ internal object DepthReprocessRequest {
         }
     }
 }
+
+/**
+ * Wallpaper & style asking SystemUI to find the current photo's subject again,
+ * more carefully, and to forget the mask it keeps for it.
+ */
+internal object DepthReprocessRequest : SecureRequest("pixel_lock_screen_evolved_depth_reprocess")
+
+/**
+ * Wallpaper & style asking SystemUI to open the subject's mask for the current
+ * photo to be refined by hand ([DepthMaskEditor]).
+ */
+internal object DepthRefineRequest : SecureRequest("pixel_lock_screen_evolved_depth_refine")

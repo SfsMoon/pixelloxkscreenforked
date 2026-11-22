@@ -39,6 +39,12 @@
   mixed nearly sharp or frosted (`GlassPhoto.Pictures`). The drawn rim over
   it is gone but on the always-on display.
 
+- The depth effect's subject can be refined by hand (`DepthMaskEditor`,
+  `DepthRefineRequest`): from the Depth effect page, SystemUI opens the lock
+  screen photo over the picker, its subject lit, to be painted onto with a
+  soft brush that adds or erases, zoomed and moved with two fingers, with
+  Undo and Reset. The saved mask takes the model's place for that photo.
+
 ### Changed
 
 - A clock dragged above the band it stands in goes on to the top of the

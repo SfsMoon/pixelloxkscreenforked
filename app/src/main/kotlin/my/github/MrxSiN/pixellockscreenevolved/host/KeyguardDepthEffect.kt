@@ -176,6 +176,7 @@ internal class KeyguardDepthEffect(
         if (watching) return
         watching = true
         DepthReprocessRequest.listen(context.contentResolver) { reprocess(context) }
+        DepthRefineRequest.listen(context.contentResolver) { refine(context) }
         DepthEffectSetting.watch(context.contentResolver) { on ->
             enabled = on
             each().forEach { it.setEnabled(on) }
@@ -206,6 +207,35 @@ internal class KeyguardDepthEffect(
                 val photo = last.photo() ?: error("The kept photo could not be unpacked")
                 findCutout(last.context, photo, last.key, careful = true)
             }.onFailure { logger.warn("Depth effect failed", it) }
+        }
+    }
+
+    /**
+     * Opens the subject's mask for the photo last looked at to be refined by hand ([DepthMaskEditor]):
+     * the mask kept for it, or an empty one where no subject was found. What is saved is kept as that
+     * photo's mask and shown at once. Called on the main thread.
+     */
+    private fun refine(context: Context) {
+        val last = latest ?: return
+        logger.info("Depth effect subject opened to be refined by hand")
+        worker.execute {
+            runCatching {
+                val cutouts = cutouts(context)
+                val photo = last.photo() ?: error("The kept photo could not be unpacked")
+                val mask = cutouts.storedMask(last.key) ?: cutouts.emptyMask(photo)
+                main.post {
+                    DepthMaskEditor(last.context, photo, mask, logger) { refined ->
+                        worker.execute {
+                            runCatching {
+                                cutouts.storeMask(last.key, refined)
+                                photoKey = last.key
+                                publish(last.key, cutouts.cutOut(photo, refined))
+                                report(context, DepthStatus.READY)
+                            }.onFailure { logger.warn("The refined subject could not be kept", it) }
+                        }
+                    }.show()
+                }
+            }.onFailure { logger.warn("The subject could not be opened to be refined", it) }
         }
     }
 
