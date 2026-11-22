@@ -25,6 +25,13 @@ class HostDescriptorCapture(
     private val types: HostTypes,
     private val file: File,
     private val logger: Logger,
+    /**
+     * Lists the host's named classes in packages a developer is exploring, or
+     * null where none are; what it lists is described into [DISCOVERY_FILE]
+     * beside [file], so a feature not yet written can be written against the
+     * host's real names rather than guessed ones.
+     */
+    private val discover: ((List<String>) -> List<String>)? = null,
 ) : HostPatch {
 
     override fun install(classLoader: ClassLoader) {
@@ -37,6 +44,13 @@ class HostDescriptorCapture(
                 written.writeText(HostDescriptor.write(Build.ID, host, types, HostContracts.classesNamed(host), HostSymbols.current))
                 check(written.renameTo(file)) { "Could not move $written to $file" }
                 logger.info("Described ${host.packageName} on ${Build.ID} in $file")
+                val explored = EXPLORED[host].orEmpty()
+                if (explored.isNotEmpty() && discover != null) {
+                    val found = discover.invoke(explored)
+                    val target = File(file.parentFile, DISCOVERY_FILE)
+                    target.writeText(HostDescriptor.write(Build.ID, host, types, found))
+                    logger.info("Described ${found.size} classes of ${host.packageName} being explored in $target")
+                }
             }.onFailure { logger.warn("Could not describe ${host.packageName}", it) }
         }
     }
@@ -50,5 +64,23 @@ class HostDescriptorCapture(
 
         /** Where each host writes its description, in its own device-protected storage. */
         const val FILE = "pixel_lock_screen_evolved_host_descriptor.txt"
+
+        /** Where each host writes what it was asked to explore, beside [FILE]. */
+        const val DISCOVERY_FILE = "pixel_lock_screen_evolved_host_discovery.txt"
+
+        /**
+         * The packages explored for features being written: the lock screen's
+         * notifications, where they stand and how they are drawn, for glass
+         * notifications and notifications placed under the clock.
+         */
+        private val EXPLORED = mapOf(
+            Host.SYSTEMUI to listOf(
+                "com.android.systemui.statusbar.notification.stack",
+                "com.android.systemui.statusbar.notification.row",
+                "com.android.systemui.statusbar.notification.shared",
+                "com.android.systemui.keyguard.ui.composable",
+                "com.android.systemui.notifications.ui",
+            ),
+        )
     }
 }

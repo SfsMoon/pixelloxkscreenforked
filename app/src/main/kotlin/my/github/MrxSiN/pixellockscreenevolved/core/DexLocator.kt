@@ -63,6 +63,21 @@ internal class DexLocator(
         return relocations
     }
 
+    /**
+     * Every named class of the host in [packages], for a developer to find what a new feature should
+     * reach ([my.github.MrxSiN.pixellockscreenevolved.diagnostics.HostDescriptorCapture]): R8's merged
+     * lambdas and synthetic classes are left out. Slow; only ever run when a capture is asked for.
+     */
+    fun classesIn(packages: List<String>): List<String> = runCatching {
+        System.load(File(libraries, "libdexkit.so").path)
+        DexKitBridge.create(apk).use { bridge ->
+            bridge.findClass(FindClass.create().searchPackages(*packages.toTypedArray())).map { it.name }
+        }
+    }.onFailure { logger.warn("DexKit could not list host classes", it) }
+        .getOrDefault(emptyList())
+        .filterNot { name -> "ExternalSynthetic" in name || "$$" in name || ANONYMOUS.containsMatchIn(name) }
+        .sorted()
+
     private fun find(bridge: DexKitBridge, signature: Signature, locator: Locator): Signature? = when (locator) {
         is Locator.NestedClass -> {
             val matcher = ClassMatcher().className("${locator.outer}$", StringMatchType.StartsWith)
@@ -98,5 +113,8 @@ internal class DexLocator(
     companion object {
         /** In each host's own device-protected storage. */
         const val CACHE_FILE = "pixel_lock_screen_evolved_host_symbols"
+
+        /** A class Kotlin or javac numbered rather than named: `Outer${'$'}1`, `Outer${'$'}foo${'$'}2${'$'}1`. */
+        private val ANONYMOUS = Regex("\\$\\d")
     }
 }

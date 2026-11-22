@@ -175,7 +175,8 @@ class PixelLockScreenEvolvedModule : XposedModule() {
             application = loaded.application,
         )
         // One patch failing to install never keeps the next from installing.
-        val capture = HostDescriptorCapture(host, ReflectedHostTypes(loadClass), File(loaded.dataDir, HostDescriptorCapture.FILE), logger)
+        val locator = DexLocator(loaded.apk, moduleApplicationInfo.nativeLibraryDir, File(loaded.dataDir, DexLocator.CACHE_FILE), logger)
+        val capture = HostDescriptorCapture(host, ReflectedHostTypes(loadClass), File(loaded.dataDir, HostDescriptorCapture.FILE), logger, locator::classesIn)
         (listOf(startup, capture) + patchesFor(loaded, hooks, hooksFor, gate, logger)).forEach { patch ->
             runCatching { patch.install(loaded.classLoader) }.onFailure { logger.warn("A patch failed to install in ${host.packageName}", it) }
         }
