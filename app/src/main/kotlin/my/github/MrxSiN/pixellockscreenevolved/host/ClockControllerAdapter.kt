@@ -37,13 +37,15 @@ internal class ClockControllerAdapter(
             it.setSizeStep(sizeStep)
         }
         large.setPosition(api.axis(settings, ClockAxes.POSITION_KEY), api.axis(settings, ClockAxes.POSITION_SHARE_KEY))
-        large.setFrame(
-            ClockFrame.of(
-                api.axis(settings, ClockAxes.FRAME_SCALE_X_KEY),
-                api.axis(settings, ClockAxes.FRAME_SCALE_Y_KEY),
-                api.axis(settings, ClockAxes.FRAME_SHIFT_X_KEY),
-            ),
-        )
+        framed().forEach {
+            it.setFrame(
+                ClockFrame.of(
+                    api.axis(settings, ClockAxes.FRAME_SCALE_X_KEY),
+                    api.axis(settings, ClockAxes.FRAME_SCALE_Y_KEY),
+                    api.axis(settings, ClockAxes.FRAME_SHIFT_X_KEY),
+                ),
+            )
+        }
         style.options.forEach { option ->
             val stored = api.axis(settings, option.key)
             faces.forEach { it.setOption(option.key, stored) }
@@ -58,8 +60,11 @@ internal class ClockControllerAdapter(
 
     /** Shows [step] on the large face at once, as the picker's size slider moves. */
     fun previewSizeStep(step: Float) {
-        large.setSizeStep(step)
+        framed().forEach { it.setSizeStep(step) }
     }
+
+    /** The faces a size or a frame chosen for the large face applies to: the small one too where it follows it. */
+    private fun framed(): List<ClockFaceAdapter> = if (style.smallFaceFollowsLarge) faces else listOf(large)
 
     /** Shows [step] of the option under [key] on both faces at once, as the picker's option sliders move. */
     fun previewOption(key: String, step: Float) {
@@ -68,7 +73,7 @@ internal class ClockControllerAdapter(
 
     /** Shows [frame] on the large face at once, as a person stretches or moves it in the preview. */
     fun previewFrame(frame: ClockFrame) {
-        large.setFrame(frame)
+        framed().forEach { it.setFrame(frame) }
     }
 
     /** Shows [position] on the large face at once, as the picker's position controls change. */
@@ -130,6 +135,7 @@ internal class ClockControllerAdapter(
         movable = style.isMovable,
         options = style.options,
         keepsPlaceOnAod = style.keepsPlaceOnAod,
+        followsLarge = style.smallFaceFollowsLarge,
         context = context,
         initialTheme = initialTheme,
     )

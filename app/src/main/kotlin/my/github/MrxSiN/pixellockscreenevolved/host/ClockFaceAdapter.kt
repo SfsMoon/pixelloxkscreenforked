@@ -39,6 +39,8 @@ internal class ClockFaceAdapter(
     private val options: List<ClockOption>,
     /** Whether the large face keeps its awake place on the always-on display ([ClockStyle.keepsPlaceOnAod]). */
     keepsPlaceOnAod: Boolean,
+    /** Whether a small face is given the size chosen for the large one ([ClockStyle.smallFaceFollowsLarge]). */
+    private val followsLarge: Boolean,
     /** The host's own context, for whatever places the face against what SystemUI lays out around it. */
     val context: Context,
     initialTheme: Any,
@@ -212,7 +214,7 @@ internal class ClockFaceAdapter(
      * cannot be resized has nothing to change.
      */
     fun setSizeStep(step: Float?) {
-        val shown = if (size == FaceSize.SMALL) ClockAxes.SMALL_CLOCK_SIZE_STEP else step
+        val shown = if (size == FaceSize.SMALL && !followsLarge) ClockAxes.SMALL_CLOCK_SIZE_STEP else step
         timeChanges++
         (face as? ResizableClockFace)?.setSize(ClockAxes.sizeOf(shown, sizeSteps))
     }

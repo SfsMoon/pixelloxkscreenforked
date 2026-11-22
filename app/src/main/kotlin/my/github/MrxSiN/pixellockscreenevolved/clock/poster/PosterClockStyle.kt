@@ -33,7 +33,6 @@ import my.github.MrxSiN.pixellockscreenevolved.clock.ResizableClockFace
 import my.github.MrxSiN.pixellockscreenevolved.clock.WeatherClockFace
 import my.github.MrxSiN.pixellockscreenevolved.clock.parts.ClockThumbnail
 import my.github.MrxSiN.pixellockscreenevolved.clock.parts.DateLine
-import my.github.MrxSiN.pixellockscreenevolved.clock.parts.MarginColumn
 import my.github.MrxSiN.pixellockscreenevolved.clock.parts.TimeParts
 import my.github.MrxSiN.pixellockscreenevolved.clock.parts.WideColumn
 
@@ -56,6 +55,9 @@ class PosterClockStyle(private val font: PosterFont, private val fonts: FontSour
 
     /** Placed and stretched by hand, the clock stays where it was put as the display dozes. */
     override val keepsPlaceOnAod: Boolean = true
+
+    /** With notifications the clock stays itself, smaller, rather than swapping for a small one. */
+    override val smallFaceFollowsLarge: Boolean = true
     override val options: List<ClockOption> = PosterOptions.of(font)
 
     override fun createFace(context: Context, size: FaceSize): ClockFace = Face(context, size, typeface(context))
@@ -92,7 +94,7 @@ class PosterClockStyle(private val font: PosterFont, private val fonts: FontSour
         private val context = context
         private val shortSide = context.resources.displayMetrics.let { minOf(it.widthPixels, it.heightPixels) }.toFloat()
         private val time = PosterTimeView(context, font, typeface)
-        private val date = DateLine(context, DATE).takeIf { size == FaceSize.LARGE }
+        private val date = DateLine(context, DATE)
 
         private val density = context.resources.displayMetrics.density
 
@@ -108,18 +110,21 @@ class PosterClockStyle(private val font: PosterFont, private val fonts: FontSour
         /** How much smaller than laid out the host draws the face ([setDrawnScale]). */
         private var drawnScale = 1f
 
-        /** The large face's column, which a person may move across; the small face keeps to the lock screen's margin. */
-        private val column = WideColumn(context).takeIf { size == FaceSize.LARGE }
+        /**
+         * The face's column, which a person may move across. The small face, shown above notifications,
+         * is the large one made smaller, as other systems keep their big clock with notifications rather
+         * than swapping it for a small one: its date, look, frame and place across are the large face's.
+         */
+        private val column = WideColumn(context)
 
-        override val view: View = (column ?: MarginColumn(context)).apply {
-            if (column != null) gravity = Gravity.CENTER_HORIZONTAL
+        override val view: View = column.apply {
+            gravity = Gravity.CENTER_HORIZONTAL
             layoutParams = ViewGroup.LayoutParams(WRAP, WRAP)
-            val across = if (column != null) Gravity.CENTER_HORIZONTAL else Gravity.START
-            date?.let { addView(it.view, LinearLayout.LayoutParams(WRAP, WRAP).apply { gravity = across }) }
-            addView(time, LinearLayout.LayoutParams(WRAP, WRAP).apply { gravity = across })
+            addView(date.view, LinearLayout.LayoutParams(WRAP, WRAP).apply { gravity = Gravity.CENTER_HORIZONTAL })
+            addView(time, LinearLayout.LayoutParams(WRAP, WRAP).apply { gravity = Gravity.CENTER_HORIZONTAL })
         }
         override val timeView: View get() = time
-        override val drawsDate: Boolean get() = date != null
+        override val drawsDate: Boolean = true
 
         init {
             time.setLooks(hourLook, minuteLook)
@@ -137,24 +142,21 @@ class PosterClockStyle(private val font: PosterFont, private val fonts: FontSour
             val now = Calendar.getInstance()
             val parts = TimeParts.of(now[Calendar.HOUR_OF_DAY], now[Calendar.MINUTE], DateFormat.is24HourFormat(context), Locale.getDefault())
             time.setTime(parts.hour.padStart(2, '0'), parts.minute)
-            date?.refresh()
+            date.refresh()
         }
 
         override fun setColor(color: Int) {
             time.setColor(color)
-            date?.setColor(color)
+            date.setColor(color)
         }
 
         override fun setSize(size: Float) {
             shownSize = size
-            if (this.size == FaceSize.SMALL) {
-                time.fit(shortSide * SMALL_TO_SHORT_SIDE, maxWidth = shortSide * SMALL_MAX_WIDTH)
-                return
-            }
-            val sized = shortSide * (font.smallest + (font.largest - font.smallest) * size.coerceIn(0f, 1f))
+            val large = shortSide * (font.smallest + (font.largest - font.smallest) * size.coerceIn(0f, 1f))
+            val sized = if (this.size == FaceSize.SMALL) large * SMALL_SHARE else large
             time.fit(sized, maxWidth = columnWidth())
             time.setScale(frame.scaleX, frame.scaleY)
-            column?.shift = frame.shiftX * windowWidth() / drawnScale
+            column.shift = frame.shiftX * windowWidth() / drawnScale
             placeDate(datePlace)
         }
 
@@ -170,7 +172,7 @@ class PosterClockStyle(private val font: PosterFont, private val fonts: FontSour
 
         /** Writes the date above the time, below it, or not at all. */
         private fun placeDate(place: DatePlace) {
-            val line = date?.view ?: return
+            val line = date.view
             val column = view as ViewGroup
             line.visibility = if (place == DatePlace.HIDDEN) View.GONE else View.VISIBLE
             val wanted = if (place == DatePlace.BELOW) column.childCount - 1 else 0
@@ -191,9 +193,9 @@ class PosterClockStyle(private val font: PosterFont, private val fonts: FontSour
             datePlace = place
         }
 
-        /** Stretches and moves the large face as a person framed it by hand; the small face keeps its place beside notifications. */
+        /** Stretches and moves the face as a person framed it by hand; the small face follows the large one. */
         override fun setFrame(frame: ClockFrame) {
-            if (size == FaceSize.SMALL || frame == this.frame) return
+            if (frame == this.frame) return
             this.frame = frame
             setSize(shownSize)
         }
@@ -211,7 +213,7 @@ class PosterClockStyle(private val font: PosterFont, private val fonts: FontSour
             ?: context.resources.displayMetrics.widthPixels).toFloat()
 
         override fun setWeather(weather: ClockWeather?) {
-            date?.setWeather(weather)
+            date.setWeather(weather)
         }
 
         override fun setOption(key: String, step: Int) {
@@ -240,12 +242,8 @@ class PosterClockStyle(private val font: PosterFont, private val fonts: FontSour
         /** The least change of the scene's scale worth fitting the line again for. */
         const val SCALE_STEP = 0.005f
 
-        /**
-         * The small face, above notifications: taller than a Pixel small clock, as its figures are narrow, and
-         * starting where SystemUI's date line under it starts ([MarginColumn]).
-         */
-        const val SMALL_TO_SHORT_SIDE = 0.22f
-        const val SMALL_MAX_WIDTH = 0.8f
+        /** How large the small face, above notifications, is against the large one. */
+        const val SMALL_SHARE = 0.7f
 
         /** Space between the date and the figures, against the short side. */
         const val DATE_GAP = 0.015f

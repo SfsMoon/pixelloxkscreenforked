@@ -57,6 +57,14 @@ interface ClockStyle {
     val keepsPlaceOnAod: Boolean get() = false
 
     /**
+     * Whether the small face, shown above notifications, follows the large
+     * one: it is given the large face's size and frame, and draws a smaller
+     * copy of it, as other systems keep their big clock with notifications.
+     * Otherwise the small face keeps one modest size whatever is chosen.
+     */
+    val smallFaceFollowsLarge: Boolean get() = false
+
+    /**
      * Stepped choices this style offers beyond its size, width and position,
      * each shown as a slider in Wallpaper & style. The faces of a style with any
      * implement [ConfigurableClockFace].

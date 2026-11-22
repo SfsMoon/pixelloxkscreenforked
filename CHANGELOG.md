@@ -47,6 +47,12 @@
 
 ### Changed
 
+- With notifications, a Poster clock stays itself, smaller, rather than
+  swapping for a small clock (`ClockStyle.smallFaceFollowsLarge`): the small
+  face is the large one at 70% of its size, with its date above, its look,
+  frame and place across, as other systems keep their big clock; SystemUI's
+  date line under a small clock is left out. `MarginColumn`, which started
+  the old small face at the text margin, is gone.
 - A clock dragged above the band it stands in goes on to the top of the
   screen (`ClockPosition.HIGHEST`): a face whose own date stands above its
   time could not put the time right under the status bar.
