@@ -15,8 +15,12 @@ import my.github.MrxSiN.pixellockscreenevolved.hook.HostPatch
  * contract against.
  *
  * Asked for with `adb shell setprop debug.pixel_lock_screen_evolved.capture 1`
- * before the host starts; `scripts/capture-host-fixture.sh` asks, restarts the
- * hosts and pulls what they wrote. The description is taken through the same
+ * before the host starts, or, where the framework keeps the module from reading
+ * system properties, by a file named [REQUEST_FILE] in the host's
+ * device-protected storage; `scripts/capture-host-fixture.sh` asks, restarts
+ * the hosts and pulls what they wrote. How it went is written to
+ * [STATUS_FILE] beside the description, so a capture can be followed where
+ * the module's log does not reach logcat. The description is taken through the same
  * class loader the contract check reads, so it is the host exactly as the check
  * sees it. Nothing is read or written unless asked.
  */
@@ -34,8 +38,11 @@ class HostDescriptorCapture(
     private val discover: ((List<String>) -> List<String>)? = null,
 ) : HostPatch {
 
+    private val status = File(file.parentFile, STATUS_FILE)
+
     override fun install(classLoader: ClassLoader) {
         if (!isRequested()) return
+        report("asked for on ${Build.ID}; describing")
         // Off the host's start: a description reads a few hundred classes.
         thread(name = "PixelLockScreenEvolved-capture") {
             runCatching {
@@ -51,19 +58,33 @@ class HostDescriptorCapture(
                     target.writeText(HostDescriptor.write(Build.ID, host, types, found))
                     logger.info("Described ${found.size} classes of ${host.packageName} being explored in $target")
                 }
-            }.onFailure { logger.warn("Could not describe ${host.packageName}", it) }
+                report("done on ${Build.ID}")
+            }.onFailure {
+                logger.warn("Could not describe ${host.packageName}", it)
+                report("failed: ${it.stackTraceToString()}")
+            }
         }
     }
 
-    private fun isRequested(): Boolean = runCatching {
+    private fun isRequested(): Boolean = File(file.parentFile, REQUEST_FILE).exists() || runCatching {
         Class.forName("android.os.SystemProperties").getMethod("get", String::class.java).invoke(null, PROPERTY) == "1"
     }.getOrDefault(false)
+
+    private fun report(line: String) {
+        runCatching { status.writeText("${System.currentTimeMillis()} $line\n") }
+    }
 
     companion object {
         const val PROPERTY = "debug.pixel_lock_screen_evolved.capture"
 
         /** Where each host writes its description, in its own device-protected storage. */
         const val FILE = "pixel_lock_screen_evolved_host_descriptor.txt"
+
+        /** A file whose presence in the host's device-protected storage asks for a capture, as [PROPERTY] does. */
+        const val REQUEST_FILE = "pixel_lock_screen_evolved_capture"
+
+        /** How the last capture went, beside [FILE]. */
+        const val STATUS_FILE = "pixel_lock_screen_evolved_capture_status.txt"
 
         /** Where each host writes what it was asked to explore, beside [FILE]. */
         const val DISCOVERY_FILE = "pixel_lock_screen_evolved_host_discovery.txt"
