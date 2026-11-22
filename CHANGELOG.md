@@ -68,6 +68,9 @@
 
 ### Fixed
 
+- The subject editor could not open: it added its window through the
+  wallpaper's window context, whose type the window manager would not mix
+  with a dialog's. It now makes a window context of its own type.
 - Refine subject by hand did nothing after SystemUI started again or the
   module reloaded: SystemUI heard Wallpaper & style's requests, and held a
   photo, only once it drew a photo it had not drawn, which it does not do for

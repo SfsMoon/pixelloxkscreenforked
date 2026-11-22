@@ -52,8 +52,18 @@ internal class DepthMaskEditor(
     private val onSave: (Bitmap) -> Unit,
 ) {
 
-    private val context = ContextThemeWrapper(context, android.R.style.Theme_DeviceDefault)
-    private val windowManager = context.getSystemService(WindowManager::class.java)
+    /**
+     * A context of its own for the editor's window type: the one handed over may be a window context
+     * of another type, as the wallpaper's is, which the window manager refuses to add a dialog through.
+     */
+    @Suppress("DEPRECATION")
+    private val windowContext: Context = (context.applicationContext ?: context).let { app ->
+        val display = context.display ?: app.getSystemService(android.hardware.display.DisplayManager::class.java)
+            .getDisplay(android.view.Display.DEFAULT_DISPLAY)
+        app.createWindowContext(display, WINDOW_TYPE, null)
+    }
+    private val context = ContextThemeWrapper(windowContext, android.R.style.Theme_DeviceDefault)
+    private val windowManager = windowContext.getSystemService(WindowManager::class.java)
     private val density = context.resources.displayMetrics.density
     private val accent = context.getColor(android.R.color.system_accent1_200)
 
@@ -74,12 +84,10 @@ internal class DepthMaskEditor(
     fun show() {
         if (root != null) return
         val view = layout()
-        // A system dialog window stands over whatever app is open, Wallpaper & style here; SystemUI may add one.
-        @Suppress("DEPRECATION")
         val params = WindowManager.LayoutParams(
             WindowManager.LayoutParams.MATCH_PARENT,
             WindowManager.LayoutParams.MATCH_PARENT,
-            WindowManager.LayoutParams.TYPE_SYSTEM_DIALOG,
+            WINDOW_TYPE,
             WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED or WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
             PixelFormat.OPAQUE,
         ).apply {
@@ -465,6 +473,10 @@ internal class DepthMaskEditor(
 
     private companion object {
         const val TITLE = "Refine subject"
+
+        /** A system dialog window stands over whatever app is open, Wallpaper & style here; SystemUI may add one. */
+        @Suppress("DEPRECATION")
+        const val WINDOW_TYPE = WindowManager.LayoutParams.TYPE_SYSTEM_DIALOG
         const val MATCH = ViewGroup.LayoutParams.MATCH_PARENT
         const val WRAP = ViewGroup.LayoutParams.WRAP_CONTENT
 
