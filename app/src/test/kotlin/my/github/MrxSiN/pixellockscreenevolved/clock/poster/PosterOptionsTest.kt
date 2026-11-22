@@ -4,6 +4,8 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Test
 
+import my.github.MrxSiN.pixellockscreenevolved.clock.parts.GlassLook
+
 class PosterOptionsTest {
 
     @Test

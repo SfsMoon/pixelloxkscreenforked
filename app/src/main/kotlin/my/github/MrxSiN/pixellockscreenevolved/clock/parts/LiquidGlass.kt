@@ -1,4 +1,4 @@
-package my.github.MrxSiN.pixellockscreenevolved.clock.poster
+package my.github.MrxSiN.pixellockscreenevolved.clock.parts
 
 import android.graphics.Bitmap
 import android.graphics.BitmapShader

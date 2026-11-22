@@ -10,6 +10,8 @@ import android.graphics.RectF
 import android.graphics.Shader
 
 import my.github.MrxSiN.pixellockscreenevolved.clock.parts.DozeInk
+import my.github.MrxSiN.pixellockscreenevolved.clock.parts.GlassLook
+import my.github.MrxSiN.pixellockscreenevolved.clock.parts.LiquidGlass
 
 /**
  * One run of figures (the hours, or the minutes) as outlines, and the paint

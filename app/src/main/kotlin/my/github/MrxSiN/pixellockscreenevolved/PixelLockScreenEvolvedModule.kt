@@ -39,6 +39,7 @@ import my.github.MrxSiN.pixellockscreenevolved.host.KeyguardDepthEffect
 import my.github.MrxSiN.pixellockscreenevolved.host.KeyguardDoubleTapToSleep
 import my.github.MrxSiN.pixellockscreenevolved.host.KeyguardPreviewWallpapers
 import my.github.MrxSiN.pixellockscreenevolved.host.KeyguardSmartspacePlacement
+import my.github.MrxSiN.pixellockscreenevolved.host.LockScreenNotifications
 import my.github.MrxSiN.pixellockscreenevolved.host.LockWallpaperFeed
 import my.github.MrxSiN.pixellockscreenevolved.host.PickerClockPatches
 import my.github.MrxSiN.pixellockscreenevolved.host.SafeModeNotice
@@ -237,6 +238,7 @@ class PixelLockScreenEvolvedModule : XposedModule() {
                     wallpaperFeed.takeIf { depth || aod || clocks },
                     aodWallpaper.takeIf { aod }?.let { gate.gate(Feature.AOD_WALLPAPER, it) },
                     gate.gate(Feature.DOUBLE_TAP_TO_SLEEP, KeyguardDoubleTapToSleep(hooksFor(Feature.DOUBLE_TAP_TO_SLEEP), logger)),
+                    gate.gate(Feature.LOCK_SCREEN_NOTIFICATIONS, LockScreenNotifications(hooksFor(Feature.LOCK_SCREEN_NOTIFICATIONS), logger)),
                 )
             }
             Host.PICKER -> listOf(PickerClockPatches(hooks, hooksFor, styles, gate, moduleApplicationInfo, logger, onRegistry, reloadedRegistry))

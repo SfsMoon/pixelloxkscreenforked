@@ -17,6 +17,7 @@ import my.github.MrxSiN.pixellockscreenevolved.clock.EdgeToEdgeClockFace
 import my.github.MrxSiN.pixellockscreenevolved.clock.ExpressiveClockFace
 import my.github.MrxSiN.pixellockscreenevolved.clock.FaceSize
 import my.github.MrxSiN.pixellockscreenevolved.clock.ResizableClockFace
+import my.github.MrxSiN.pixellockscreenevolved.clock.NotificationGlassFace
 import my.github.MrxSiN.pixellockscreenevolved.clock.SmartspaceClockFace
 
 /**
@@ -287,6 +288,16 @@ internal object ModuleClockFaces {
         faces.removeAll { it.view.get() == null }
         val tracked = faces.firstOrNull { it.view.get() === face.view }
         if (tracked != null) tracked.size = size else faces += Tracked(face, size)
+    }
+
+    /** The module face shown in [root] that says how notifications are drawn beside it ([NotificationGlassFace]), or null. */
+    fun notificationGlassIn(root: View): NotificationGlassFace? = synchronized(faces) {
+        for (i in faces.indices) {
+            val face = faces[i].face.get() as? NotificationGlassFace ?: continue
+            val view = face.view
+            if (view.isAttachedToWindow && view.isShown && view.rootView === root) return@synchronized face
+        }
+        null
     }
 
     /** Whether a module face shown in [root] asks for SystemUI's smartspace card to be left out ([SmartspaceClockFace]). */

@@ -157,7 +157,8 @@ internal class DepthLayer(
 
     private fun place() {
         val picture = cutout
-        if (picture == null || !enabled || !faceView.isInNotificationShade() || overOtherWallpaper()) {
+        // Full notifications on the lock screen leave the time whole: cards and a subject in front of it were too much to read.
+        if (picture == null || !enabled || !faceView.isInNotificationShade() || overOtherWallpaper() || LockScreenNotifications.shown) {
             detach()
             return
         }

@@ -29,6 +29,8 @@ import my.github.MrxSiN.pixellockscreenevolved.clock.EdgeToEdgeClockFace
 import my.github.MrxSiN.pixellockscreenevolved.clock.FaceSize
 import my.github.MrxSiN.pixellockscreenevolved.clock.FontSource
 import my.github.MrxSiN.pixellockscreenevolved.clock.FramedClockFace
+import my.github.MrxSiN.pixellockscreenevolved.clock.NotificationGlassFace
+import my.github.MrxSiN.pixellockscreenevolved.clock.parts.NotificationLook
 import my.github.MrxSiN.pixellockscreenevolved.clock.ResizableClockFace
 import my.github.MrxSiN.pixellockscreenevolved.clock.SmartspaceClockFace
 import my.github.MrxSiN.pixellockscreenevolved.clock.WeatherClockFace
@@ -36,6 +38,7 @@ import my.github.MrxSiN.pixellockscreenevolved.clock.parts.ClockThumbnail
 import my.github.MrxSiN.pixellockscreenevolved.clock.parts.DateLine
 import my.github.MrxSiN.pixellockscreenevolved.clock.parts.TimeParts
 import my.github.MrxSiN.pixellockscreenevolved.clock.parts.WideColumn
+import my.github.MrxSiN.pixellockscreenevolved.clock.parts.GlassLook
 
 /**
  * Poster: the time as one line of giant figures, the hours then the minutes,
@@ -90,7 +93,7 @@ class PosterClockStyle(private val font: PosterFont, private val fonts: FontSour
         fonts.typeface(context, font.asset) ?: Typeface.create("sans-serif-condensed", Typeface.BOLD)
 
     private inner class Face(context: Context, private val size: FaceSize, typeface: Typeface) :
-        ClockFace, ResizableClockFace, DozingClockFace, WeatherClockFace, ConfigurableClockFace, EdgeToEdgeClockFace, BackdropClockFace, FramedClockFace, SmartspaceClockFace {
+        ClockFace, ResizableClockFace, DozingClockFace, WeatherClockFace, ConfigurableClockFace, EdgeToEdgeClockFace, BackdropClockFace, FramedClockFace, SmartspaceClockFace, NotificationGlassFace {
 
         private val context = context
         private val shortSide = context.resources.displayMetrics.let { minOf(it.widthPixels, it.heightPixels) }.toFloat()
@@ -110,6 +113,12 @@ class PosterClockStyle(private val font: PosterFont, private val fonts: FontSour
         private var weightShare = font.weights.initialShare
         private var frame = ClockFrame.NATURAL
         private var glass = GlassLook()
+        private var notifications = NotificationLook()
+        private var shownBackdrop: Backdrop? = null
+
+        override val notificationGlass: GlassLook? get() = notifications.glassBeside(glass)
+
+        override val backdrop: Backdrop? get() = shownBackdrop
         private var datePlace = DatePlace.ABOVE
         private var shownSize = 0f
 
@@ -183,7 +192,10 @@ class PosterClockStyle(private val font: PosterFont, private val fonts: FontSour
             setSize(shownSize)
         }
 
-        override fun setBackdrop(backdrop: Backdrop?) = time.setBackdrop(backdrop)
+        override fun setBackdrop(backdrop: Backdrop?) {
+            shownBackdrop = backdrop
+            time.setBackdrop(backdrop)
+        }
 
         /** Writes the date above the time, below it, or not at all. */
         private fun placeDate(place: DatePlace) {
@@ -245,7 +257,13 @@ class PosterClockStyle(private val font: PosterFont, private val fonts: FontSour
                     return view.invalidate()
                 }
                 else -> {
+                    notifications.with(key, step)?.let {
+                        notifications = it
+                        // The notifications beside the face are drawn again before the next frame.
+                        return view.invalidate()
+                    }
                     glass = glass.with(key, step) ?: return
+                    view.invalidate()
                     return time.setGlass(glass)
                 }
             }

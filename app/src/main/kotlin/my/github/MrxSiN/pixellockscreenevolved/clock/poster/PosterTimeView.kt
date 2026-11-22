@@ -17,6 +17,7 @@ import android.view.ViewTreeObserver
 import kotlin.math.ceil
 
 import my.github.MrxSiN.pixellockscreenevolved.clock.Backdrop
+import my.github.MrxSiN.pixellockscreenevolved.clock.parts.GlassLook
 
 /**
  * The time on one line, the hours then the minutes with no separator, each

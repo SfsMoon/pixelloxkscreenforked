@@ -5,6 +5,7 @@ import my.github.MrxSiN.pixellockscreenevolved.diagnostics.Feature.CLOCK_POSITIO
 import my.github.MrxSiN.pixellockscreenevolved.diagnostics.Feature.CLOCK_SIZE_MOTION
 import my.github.MrxSiN.pixellockscreenevolved.diagnostics.Feature.CLOCK_STYLES
 import my.github.MrxSiN.pixellockscreenevolved.diagnostics.Feature.DEPTH_EFFECT
+import my.github.MrxSiN.pixellockscreenevolved.diagnostics.Feature.LOCK_SCREEN_NOTIFICATIONS
 import my.github.MrxSiN.pixellockscreenevolved.diagnostics.Feature.DOUBLE_TAP_TO_SLEEP
 import my.github.MrxSiN.pixellockscreenevolved.diagnostics.Feature.PICKER_CLOCKS
 import my.github.MrxSiN.pixellockscreenevolved.diagnostics.Feature.PICKER_CLOCK_POSITION
@@ -51,6 +52,8 @@ object HostContracts {
     private const val FINGERPRINT_MANAGER = "android.hardware.fingerprint.FingerprintManager"
     private const val FINGERPRINT_SENSOR = "android.hardware.fingerprint.FingerprintSensorPropertiesInternal"
     private const val SENSOR_LOCATION = "android.hardware.biometrics.SensorLocationInternal"
+    private const val NOTIFICATION_BACKGROUND = "com.android.systemui.statusbar.notification.row.NotificationBackgroundView"
+    private const val NOTIFICATION_STACK_ELEMENTS = "$KEYGUARD.ui.composable.elements.NotificationStackElementProvider"
 
     private const val PICKER_FRAGMENT = "com.android.wallpaper.picker.customization.ui.CustomizationPickerFragment"
     private const val SHEET_BINDER = "com.android.customization.picker.clock.ui.binder.ClockFloatingSheetBinder"
@@ -194,6 +197,18 @@ object HostContracts {
         // The first tap after it wakes again; without these that tap keeps SystemUI's falsing check.
         optional("com.android.systemui.shade.PulsingGestureListener", method("onSingleTapUp", FLOAT, FLOAT), DOUBLE_TAP_TO_SLEEP),
         optional("com.android.systemui.classifier.BrightLineFalsingManager", method("isFalseTap", INT), DOUBLE_TAP_TO_SLEEP),
+
+        // Lock screen notifications: each card's background drawn as glass, the stack lifted under the clock.
+        optional(NOTIFICATION_BACKGROUND, method("onDraw", "android.graphics.Canvas"), LOCK_SCREEN_NOTIFICATIONS),
+        optional(NOTIFICATION_BACKGROUND, Member.Field("mActualWidth"), LOCK_SCREEN_NOTIFICATIONS),
+        optional(NOTIFICATION_BACKGROUND, Member.Field("mActualHeight"), LOCK_SCREEN_NOTIFICATIONS),
+        optional(NOTIFICATION_BACKGROUND, Member.Field("mClipTopAmount"), LOCK_SCREEN_NOTIFICATIONS),
+        optional(NOTIFICATION_BACKGROUND, Member.Field("mClipBottomAmount"), LOCK_SCREEN_NOTIFICATIONS),
+        optional(NOTIFICATION_BACKGROUND, Member.Field("mCornerRadii"), LOCK_SCREEN_NOTIFICATIONS),
+        optional(NOTIFICATION_BACKGROUND, method("isAlignedToRight"), LOCK_SCREEN_NOTIFICATIONS),
+        optional("$NOTIFICATION_STACK_ELEMENTS\$NotificationElement", Member.Method("LockscreenElement"), LOCK_SCREEN_NOTIFICATIONS),
+        optional("$NOTIFICATION_STACK_ELEMENTS\$NotificationElement", Member.Field("this\$0"), LOCK_SCREEN_NOTIFICATIONS),
+        optional(NOTIFICATION_STACK_ELEMENTS, Member.Field("stackScrollView"), LOCK_SCREEN_NOTIFICATIONS),
     )
 
     val picker: List<HostContract> = clockPlugin(setOf(PICKER_CLOCKS, PICKER_CLOCK_SIZE, PICKER_CLOCK_POSITION)) + listOf(

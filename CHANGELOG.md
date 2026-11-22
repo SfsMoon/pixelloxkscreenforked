@@ -45,6 +45,22 @@
   soft brush that adds or erases, zoomed and moved with two fingers, with
   Undo and Reset. The saved mask takes the model's place for that photo.
 
+- Glass notifications on the lock screen beside a Poster clock
+  (`LockScreenNotifications`, `NotificationLook`, `NotificationGlassFace`):
+  each card's background is drawn as glass through the photo behind, like the
+  clock's or with a look of its own (frost, refraction, highlights, tint), or
+  left to SystemUI, as chosen in the Glass tab. Cards keep some of their own
+  colour so their text reads over any photo.
+- The lock screen's notifications stand right under a Poster clock: the stack
+  is lifted into the room the scene left for rows it does not show.
+- The depth effect leaves the time whole while full notifications stand on the
+  lock screen; compact notifications, a row of icons, leave it be.
+- Captures also describe the host's notification and lock screen classes into
+  a discovery file, asked for by a file where the module cannot read system
+  properties, with how it went written beside them.
+- `GlassLook` and `LiquidGlass` moved to `clock.parts`, shared by the clock and
+  the notifications.
+
 ### Changed
 
 - A Smartspace option for the Poster clocks, hidden at first: SystemUI's

@@ -2242,6 +2242,23 @@ class com.android.systemui.keyguard.ui.composable.LockscreenTouchHandlingKt$Lock
   field $r8$classId
   field f$0
   method invoke(java.lang.Object)
+class com.android.systemui.keyguard.ui.composable.elements.NotificationStackElementProvider extends java.lang.Object
+  field context
+  field elements$delegate
+  field stackScrollView
+  field viewModelFactory
+  method NotificationStack(com.android.compose.animation.scene.ContentScope,androidx.compose.ui.Modifier,androidx.compose.runtime.Composer,int)
+  method getElements()
+class com.android.systemui.keyguard.ui.composable.elements.NotificationStackElementProvider$NotificationElement extends java.lang.Object
+  field context
+  field key
+  field source
+  field this$0
+  method LockscreenElement(com.android.systemui.plugins.keyguard.ui.composable.elements.LockscreenScope,androidx.compose.runtime.Composer,int)
+  method getContext()
+  method getKey()
+  method getKey()
+  method getSource()
 class com.android.systemui.keyguard.ui.composable.elements.SmartspaceElementProvider$CardsElement extends java.lang.Object
   field context
   field key
@@ -2796,6 +2813,45 @@ class com.android.systemui.statusbar.PowerButtonReveal extends java.lang.Object
   method hashCode()
   method setRevealAmountOnScrim(float,com.android.systemui.statusbar.LightRevealScrim)
   method toString()
+class com.android.systemui.statusbar.notification.row.NotificationBackgroundView extends android.view.View
+  field mActualHeight
+  field mActualWidth
+  field mAlphaPropagationHelper
+  field mBackground
+  field mBottomAmountClips
+  field mBottomIsRounded
+  field mBottomOverlap
+  field mClipBottomAmount
+  field mClipTopAmount
+  field mCornerRadii
+  field mDarkColoredStatefulColors
+  field mDontModifyCorners
+  field mDrawableAlpha
+  field mExpandAnimationHeight
+  field mExpandAnimationRunning
+  field mExpandAnimationWidth
+  field mFocused
+  field mLightColoredStatefulColors
+  field mNormalColor
+  field mRippleColor
+  field mTintColor
+  field mTopOverlap
+  method drawableHotspotChanged(float,float)
+  method drawableStateChanged()
+  method dump(java.io.PrintWriter,[Ljava.lang.String;)
+  method getActualHeight$1()
+  method hasOverlappingRendering()
+  method isAlignedToRight()
+  method isBlurEnabled()
+  method onAttachedToWindow()
+  method onDetachedFromWindow()
+  method onDraw(android.graphics.Canvas)
+  method setCustomBackground$1()
+  method setRadius(float,float)
+  method setState([I)
+  method setTint(int)
+  method updateBackgroundRadii()
+  method verifyDrawable(android.graphics.drawable.Drawable)
 class com.android.systemui.wallpapers.ImageWallpaper$CanvasEngine extends android.service.wallpaper.WallpaperService$Engine
   field MIN_SURFACE_HEIGHT
   field MIN_SURFACE_WIDTH

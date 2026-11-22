@@ -848,3 +848,22 @@ was found as `relocated` lines, and `HostCompatibilityTest` applies them.
 The module packs native libraries compressed, so Vector's class loader (which
 reads `base.apk!/lib`) cannot find `libdexkit.so`; it is loaded by path from
 the module's `nativeLibraryDir`.
+
+## Lock screen notifications (`CP3A.261005.005`)
+
+Read from a capture of `CP3A.261005.005` with the discovery file
+(`HostDescriptorCapture.DISCOVERY_FILE`); not yet captured on
+`CP4A.261105.040.A1`, so `HostCompatibilityTest` asks for that build to be
+captured again. Every member is optional: missing, the notifications keep
+SystemUI's look and place.
+
+| Member | Why |
+|---|---|
+| `statusbar.notification.row.NotificationBackgroundView.onDraw(Canvas)` | Each card's background. Beside a clock that asks for glass, its canvas argument is replaced by an empty one after the glass is drawn into the real one, so SystemUI's background is drawn into nothing. |
+| `NotificationBackgroundView.mActualWidth`, `mActualHeight`, `mClipTopAmount`, `mClipBottomAmount`, `isAlignedToRight()` | The rectangle the background is drawn in, as the stack overlaps and clips cards. |
+| `NotificationBackgroundView.mCornerRadii` | The card's eight corner radii, for the glass's outline. |
+| `keyguard.ui.composable.elements.NotificationStackElementProvider$NotificationElement.LockscreenElement` | Composes the stack into the lock screen scene; after it, the stack view is followed. |
+| `NotificationStackElementProvider$NotificationElement.this$0`, `NotificationStackElementProvider.stackScrollView` | The stack view the element hosts: lifted, by `translationY` added to SystemUI's own, to stand right under the clock, and read for whether cards are shown, which turns the depth effect off while full notifications stand on the lock screen. |
+
+`lock_screen_notification_minimalism` (secure setting, SystemUI's own) tells
+compact notifications, a row of icons, from full ones; on unless set to 0.
