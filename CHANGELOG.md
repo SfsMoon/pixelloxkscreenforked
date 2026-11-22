@@ -49,9 +49,12 @@
 
 - With notifications, a Poster clock stays itself, smaller, rather than
   swapping for a small clock (`ClockStyle.smallFaceFollowsLarge`): the small
-  face is the large one at 70% of its size, with its date above, its look,
-  frame and place across, as other systems keep their big clock; SystemUI's
-  date line under a small clock is left out. `MarginColumn`, which started
+  face is the large one, with its date above, its look, frame and place
+  across, as other systems keep their big clock; where it would stand taller
+  than half the screen, its height alone is pressed to half. SystemUI's date
+  line is hidden beside any face of this module's that writes its own date
+  (`ModuleClockFaces.writesDateIn`), and the depth effect's subject stands in
+  front of such a small face too. `MarginColumn`, which started
   the old small face at the text margin, is gone.
 - A clock dragged above the band it stands in goes on to the top of the
   screen (`ClockPosition.HIGHEST`): a face whose own date stands above its

@@ -95,6 +95,9 @@ internal class PosterTimeView(context: Context, private val font: PosterFont, ty
     private var figuresTop = 0f
     private var figuresHeight = 0f
 
+    /** How tall the figures are drawn now, the stretch included. */
+    val figuresTall: Float get() = figuresHeight
+
     /**
      * How wide the line's ink is, where it starts from the first glyph's
      * origin, and the room kept around it for glass's shadow. The line is

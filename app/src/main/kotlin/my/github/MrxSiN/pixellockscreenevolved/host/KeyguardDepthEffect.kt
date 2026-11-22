@@ -85,20 +85,20 @@ internal class KeyguardDepthEffect(
      * the clock's large face, and that face lays itself out around it where its
      * design says to.
      */
-    private class Shown(val layer: DepthLayer, val focus: SubjectFocus) {
+    private class Shown(val layers: List<DepthLayer>, val focus: SubjectFocus) {
 
         fun setEnabled(on: Boolean) {
-            layer.setEnabled(on)
+            layers.forEach { it.setEnabled(on) }
             focus.setEnabled(on)
         }
 
         fun show(cutout: Bitmap?) {
-            layer.show(cutout)
+            layers.forEach { it.show(cutout) }
             focus.show(cutout)
         }
 
         fun invalidate() {
-            layer.invalidate()
+            layers.forEach { it.invalidate() }
             focus.invalidate()
         }
     }
@@ -106,12 +106,12 @@ internal class KeyguardDepthEffect(
     /** Draws the subject in front of a clock SystemUI built, once there is one. */
     fun track(clock: ClockControllerAdapter) {
         main.post {
+            // The subject stands in front of the small face too where it is the large one made smaller.
+            val faces = if (clock.smallFaceFollowsLarge) listOf(clock.largeFace, clock.smallFace) else listOf(clock.largeFace)
             val each = Shown(
-                layer = DepthLayer(
-                    face = clock.largeFace,
-                    feed = feed,
-                    overOtherWallpaper = { previews.showsOtherWallpaper(clock.controller) },
-                ),
+                layers = faces.map { face ->
+                    DepthLayer(face = face, feed = feed, overOtherWallpaper = { previews.showsOtherWallpaper(clock.controller) })
+                },
                 focus = SubjectFocus(clock.largeFace, feed),
             )
             shown[clock] = each

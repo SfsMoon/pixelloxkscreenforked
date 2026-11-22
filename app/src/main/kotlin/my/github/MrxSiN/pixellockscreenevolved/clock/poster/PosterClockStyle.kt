@@ -97,6 +97,11 @@ class PosterClockStyle(private val font: PosterFont, private val fonts: FontSour
         private val date = DateLine(context, DATE)
 
         private val density = context.resources.displayMetrics.density
+        private val screenHeight = context.resources.displayMetrics.let { maxOf(it.widthPixels, it.heightPixels) }.toFloat()
+
+        /** How much height the date and the gap to it take, as laid out, or as they will before they are. */
+        private fun dateRoom(): Float = date.view.height.takeIf { it > 0 }?.toFloat()?.plus(shortSide * DATE_GAP)
+            ?: shortSide * (DATE.sizeToShortSide * DATE_LINE_HEIGHT + DATE_GAP)
 
         private var hourLook = font.hourLook
         private var minuteLook = font.minuteLook
@@ -152,10 +157,16 @@ class PosterClockStyle(private val font: PosterFont, private val fonts: FontSour
 
         override fun setSize(size: Float) {
             shownSize = size
-            val large = shortSide * (font.smallest + (font.largest - font.smallest) * size.coerceIn(0f, 1f))
-            val sized = if (this.size == FaceSize.SMALL) large * SMALL_SHARE else large
+            val sized = shortSide * (font.smallest + (font.largest - font.smallest) * size.coerceIn(0f, 1f))
             time.fit(sized, maxWidth = columnWidth())
             time.setScale(frame.scaleX, frame.scaleY)
+            // Above notifications the face is the large one, its height alone pressed to half the screen where it
+            // stands taller, so the notifications have room below it.
+            if (this.size == FaceSize.SMALL) {
+                val room = screenHeight * SMALL_SCREEN_SHARE - if (datePlace == DatePlace.HIDDEN) 0f else dateRoom()
+                val tall = time.figuresTall
+                if (tall > room && room > 0f) time.setScale(frame.scaleX, frame.scaleY * room / tall)
+            }
             column.shift = frame.shiftX * windowWidth() / drawnScale
             placeDate(datePlace)
         }
@@ -242,8 +253,11 @@ class PosterClockStyle(private val font: PosterFont, private val fonts: FontSour
         /** The least change of the scene's scale worth fitting the line again for. */
         const val SCALE_STEP = 0.005f
 
-        /** How large the small face, above notifications, is against the large one. */
-        const val SMALL_SHARE = 0.7f
+        /** A line of text is about this much taller than its text size. */
+        const val DATE_LINE_HEIGHT = 1.3f
+
+        /** The most of the screen's height the small face, above notifications, may stand. */
+        const val SMALL_SCREEN_SHARE = 0.5f
 
         /** Space between the date and the figures, against the short side. */
         const val DATE_GAP = 0.015f

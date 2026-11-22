@@ -55,6 +55,9 @@ internal class ClockControllerAdapter(
     /** The large face, the one the depth effect draws in front of. */
     val largeFace: ClockFaceAdapter get() = large
 
+    /** Whether the small face is the large one made smaller ([ClockStyle.smallFaceFollowsLarge]). */
+    val smallFaceFollowsLarge: Boolean get() = style.smallFaceFollowsLarge
+
     /** The small face, shown while notifications are. */
     val smallFace: ClockFaceAdapter get() = small
 

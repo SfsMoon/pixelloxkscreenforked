@@ -72,7 +72,7 @@ internal class ComposedSmartspacePlacement {
 
     private fun placeRow(row: View) {
         if (!row.isAttachedToWindow) return
-        if (ModuleClockFaces.largeIn(row.rootView) != null) {
+        if (ModuleClockFaces.writesDateIn(row.rootView)) {
             // Translating a Compose child can be clipped by its interop holder, so the row is hidden in place.
             if (row.visibility == View.VISIBLE && !hiddenRows.containsKey(row)) {
                 hiddenRows[row] = row.visibility

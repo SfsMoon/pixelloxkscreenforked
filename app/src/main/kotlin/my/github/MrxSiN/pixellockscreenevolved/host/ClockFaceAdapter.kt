@@ -160,7 +160,7 @@ internal class ClockFaceAdapter(
     init {
         face.view.id = api.viewId(size)
         face.view.tag = ModuleClockFaceTag
-        ModuleClockFaces.track(face.view, size)
+        ModuleClockFaces.track(face.view, size, face.drawsDate)
         // The rows under a small clock are spaced against SystemUI's own band for it ([LockScreenInsets]).
         if (size == FaceSize.SMALL) face.view.minimumHeight = LockScreenInsets.smallClockHeight(context)
         if (api.elements != null && context.packageName == SYSTEMUI_PACKAGE) {
@@ -273,7 +273,7 @@ internal object ModuleClockFaceTag
 internal object ModuleClockFaces {
 
     /** A face tracked without keeping it alive. */
-    private class Tracked(view: View, var size: FaceSize) {
+    private class Tracked(view: View, var size: FaceSize, var drawsDate: Boolean) {
         val view = WeakReference(view)
     }
 
@@ -281,10 +281,30 @@ internal object ModuleClockFaces {
     // allocates an iterator each time.
     private val faces = ArrayList<Tracked>()
 
-    fun track(view: View, size: FaceSize) = synchronized(faces) {
+    fun track(view: View, size: FaceSize, drawsDate: Boolean) = synchronized(faces) {
         faces.removeAll { it.view.get() == null }
         val tracked = faces.firstOrNull { it.view.get() === view }
-        if (tracked != null) tracked.size = size else faces += Tracked(view, size)
+        if (tracked != null) {
+            tracked.size = size
+            tracked.drawsDate = drawsDate
+        } else {
+            faces += Tracked(view, size, drawsDate)
+        }
+    }
+
+    /**
+     * Whether a module face that writes its own date is shown in [root]: every
+     * large face, and a small face that follows its large one; SystemUI's own
+     * date row then has no place beside it.
+     */
+    fun writesDateIn(root: View): Boolean = synchronized(faces) {
+        for (i in faces.indices) {
+            val tracked = faces[i]
+            if (!tracked.drawsDate && tracked.size != FaceSize.LARGE) continue
+            val view = tracked.view.get() ?: continue
+            if (view.isAttachedToWindow && view.isShown && view.rootView === root) return@synchronized true
+        }
+        false
     }
 
     /** Scratch for [largeIn], under the lock. */
