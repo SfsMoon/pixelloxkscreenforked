@@ -68,6 +68,12 @@
 
 ### Fixed
 
+- The depth effect's subject stood off the photo, moved and resized, after it
+  was refined by hand: what is drawn over the wallpaper was placed taking its
+  picture's size for the wallpaper surface's, and the photo kept on disk had
+  been stretched to the surface as it was when kept. The crop is in the
+  pixels of the surface as it is now, so placing is now always done against
+  that surface (`LockWallpaperFeed.place`), whatever size the picture placed.
 - The subject editor could not open: it added its window through the
   wallpaper's window context, whose type the window manager would not mix
   with a dialog's. It now makes a window context of its own type.

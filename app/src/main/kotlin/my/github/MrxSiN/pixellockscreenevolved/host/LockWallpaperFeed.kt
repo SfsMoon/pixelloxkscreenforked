@@ -54,6 +54,13 @@ internal class LockWallpaperFeed(
     private var dimOf: (Any) -> Float = { 0f }
 
     private var crop: WallpaperPlacement.Crop? = null
+
+    /**
+     * The size of the surface the photo is stretched to now, which [crop] is in the pixels of; null
+     * before SystemUI has drawn a photo. A picture kept from an earlier start may have been stretched
+     * to a surface of another size, so placing is always done against this one.
+     */
+    private var surface: WallpaperPlacement.Size? = null
     private var scroll = WallpaperPlacement.Scroll(0f, 0.5f)
     private var zoom = 1f
     private var zoomScales = WallpaperPlacement.ZoomScales(1f, 1f)
@@ -67,12 +74,18 @@ internal class LockWallpaperFeed(
     }
 
     /**
-     * Where a photo stretched to [surface] is on [screen] now; on the main
-     * thread. [zoomed] false places it as it rests, leaving out the zoom the
-     * lock screen breathes the wallpaper with as it comes and goes, for
-     * whatever should not follow that breath.
+     * Where the wallpaper's surface is on [screen] now; on the main thread. A
+     * picture of it at any size is drawn there by stretching it over
+     * [WallpaperPlacement.Placed.width] and [WallpaperPlacement.Placed.height].
+     * [fallback] is the surface's size where SystemUI has not drawn a photo
+     * since this started: the size the picture placed was stretched to.
+     * [zoomed] false places it as it rests, leaving out the zoom the lock
+     * screen breathes the wallpaper with as it comes and goes, for whatever
+     * should not follow that breath.
      */
-    fun place(screen: WallpaperPlacement.Size, surface: WallpaperPlacement.Size, zoomed: Boolean = true): WallpaperPlacement.Placed {
+    fun place(screen: WallpaperPlacement.Size, fallback: WallpaperPlacement.Size, zoomed: Boolean = true): WallpaperPlacement.Placed {
+        // The crop is in the pixels of the surface as it is now, not of whatever size a kept picture was made at.
+        val surface = this.surface ?: fallback
         val atZoom = if (zoomed) zoom else RESTING_ZOOM
         lastPlaced?.let { if (it.matches(screen, surface, crop, scroll, atZoom, zoomScales)) return it.placed }
         val placed = WallpaperPlacement.place(
@@ -168,6 +181,7 @@ internal class LockWallpaperFeed(
             listeners.forEach { it.onPhoto(photo, surface, key, context) }
             main.post {
                 crop = newCrop
+                this.surface = surface
                 placementChanged()
             }
             postZoom(engineZoom)
