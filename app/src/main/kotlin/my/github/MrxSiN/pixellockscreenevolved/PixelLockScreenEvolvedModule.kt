@@ -39,6 +39,7 @@ import my.github.MrxSiN.pixellockscreenevolved.host.KeyguardDepthEffect
 import my.github.MrxSiN.pixellockscreenevolved.host.KeyguardDoubleTapToSleep
 import my.github.MrxSiN.pixellockscreenevolved.host.KeyguardPreviewWallpapers
 import my.github.MrxSiN.pixellockscreenevolved.host.KeyguardSmartspacePlacement
+import my.github.MrxSiN.pixellockscreenevolved.host.LockScreenFingerprint
 import my.github.MrxSiN.pixellockscreenevolved.host.LockScreenNotifications
 import my.github.MrxSiN.pixellockscreenevolved.host.LockWallpaperFeed
 import my.github.MrxSiN.pixellockscreenevolved.host.PickerClockPatches
@@ -205,6 +206,8 @@ class PixelLockScreenEvolvedModule : XposedModule() {
                 val depthEffect = KeyguardDepthEffect(wallpaperFeed, moduleApplicationInfo.packageName, previewWallpapers, logger)
                 // Glass shows the lock screen photo through the clock whatever else is on.
                 val glass = GlassBackdrop(wallpaperFeed, previewWallpapers, logger)
+                // Follows clocks only once installed, which its feature's gate decides.
+                val fingerprint = LockScreenFingerprint(logger)
                 wallpaperFeed.addListener(glass)
                 if (aod) wallpaperFeed.addListener(aodWallpaper)
                 if (depth) {
@@ -224,6 +227,7 @@ class PixelLockScreenEvolvedModule : XposedModule() {
                             reloadedRegistry = reloadedRegistry,
                             onClockCreated = { clock ->
                                 glass.track(clock)
+                                fingerprint.track(clock)
                                 if (depth) depthEffect.track(clock)
                                 if (aod) aodWallpaper.track(clock)
                                 if (gate.allows(Feature.CLOCK_SIZE_MOTION)) sizeMotion.track(clock)
@@ -239,6 +243,7 @@ class PixelLockScreenEvolvedModule : XposedModule() {
                     aodWallpaper.takeIf { aod }?.let { gate.gate(Feature.AOD_WALLPAPER, it) },
                     gate.gate(Feature.DOUBLE_TAP_TO_SLEEP, KeyguardDoubleTapToSleep(hooksFor(Feature.DOUBLE_TAP_TO_SLEEP), logger)),
                     gate.gate(Feature.LOCK_SCREEN_NOTIFICATIONS, LockScreenNotifications(hooksFor(Feature.LOCK_SCREEN_NOTIFICATIONS), logger)),
+                    gate.gate(Feature.LOCK_SCREEN_FINGERPRINT, fingerprint),
                 )
             }
             Host.PICKER -> listOf(PickerClockPatches(hooks, hooksFor, styles, gate, moduleApplicationInfo, logger, onRegistry, reloadedRegistry))

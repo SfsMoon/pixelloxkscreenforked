@@ -96,6 +96,13 @@
   tick, and no longer shrinks the time once it is wider than the screen: the
   line is fitted first and stretched after (`PosterTimeView.setScale`).
 
+- A Fingerprint tab for the Poster clocks: the disc behind the lock screen's
+  fingerprint mark is drawn as glass (the clock's or a look of its own, with
+  an outline), clear, or left to SystemUI (`LockScreenFingerprint`, swapping
+  the picture of `DeviceEntryIconView.bgView`). Notifications and the
+  fingerprint share one surface model and painter (`SurfaceLook`,
+  `GlassSurfacePainter`); notification choices keep their stored keys.
+
 ### Fixed
 
 - With compact lock screen notifications the depth effect stayed on beside the

@@ -27,6 +27,7 @@ enum class Feature(val title: String, val host: Host, val hostManagedWhenAbsent:
     AOD_WALLPAPER("Wallpaper on always-on display", Host.SYSTEMUI),
     DOUBLE_TAP_TO_SLEEP("Double tap to turn off screen", Host.SYSTEMUI),
     LOCK_SCREEN_NOTIFICATIONS("Lock screen notifications", Host.SYSTEMUI),
+    LOCK_SCREEN_FINGERPRINT("Fingerprint icon", Host.SYSTEMUI),
     PICKER_CLOCKS("Clock styles in Wallpaper & style", Host.PICKER),
     PICKER_CLOCK_SIZE("Clock size slider", Host.PICKER),
     PICKER_CLOCK_POSITION("Clock position controls", Host.PICKER),

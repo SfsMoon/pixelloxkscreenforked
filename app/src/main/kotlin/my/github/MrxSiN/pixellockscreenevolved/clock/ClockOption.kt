@@ -33,6 +33,9 @@ data class ClockOption(
 
         /** A tab of its own for the lock screen's notifications beside the clock. */
         NOTIFICATIONS,
+
+        /** A tab of its own for the lock screen's fingerprint icon beside the clock. */
+        FINGERPRINT,
     }
 
     init {

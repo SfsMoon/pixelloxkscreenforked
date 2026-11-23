@@ -5,6 +5,7 @@ import my.github.MrxSiN.pixellockscreenevolved.diagnostics.Feature.CLOCK_POSITIO
 import my.github.MrxSiN.pixellockscreenevolved.diagnostics.Feature.CLOCK_SIZE_MOTION
 import my.github.MrxSiN.pixellockscreenevolved.diagnostics.Feature.CLOCK_STYLES
 import my.github.MrxSiN.pixellockscreenevolved.diagnostics.Feature.DEPTH_EFFECT
+import my.github.MrxSiN.pixellockscreenevolved.diagnostics.Feature.LOCK_SCREEN_FINGERPRINT
 import my.github.MrxSiN.pixellockscreenevolved.diagnostics.Feature.LOCK_SCREEN_NOTIFICATIONS
 import my.github.MrxSiN.pixellockscreenevolved.diagnostics.Feature.DOUBLE_TAP_TO_SLEEP
 import my.github.MrxSiN.pixellockscreenevolved.diagnostics.Feature.PICKER_CLOCKS
@@ -214,6 +215,9 @@ object HostContracts {
         optional("com.android.systemui.statusbar.notification.stack.NotificationStackScrollLayout", method("onKeyguard"), LOCK_SCREEN_NOTIFICATIONS),
         // A full card, told from the shelf of icons compact notifications fold into.
         optional("com.android.systemui.statusbar.notification.row.ExpandableNotificationRow", null, LOCK_SCREEN_NOTIFICATIONS),
+
+        // The fingerprint icon's disc, its picture swapped for glass or nothing.
+        optional("$KEYGUARD.ui.view.DeviceEntryIconView", Member.Field("bgView"), LOCK_SCREEN_FINGERPRINT),
     )
 
     val picker: List<HostContract> = clockPlugin(setOf(PICKER_CLOCKS, PICKER_CLOCK_SIZE, PICKER_CLOCK_POSITION)) + listOf(

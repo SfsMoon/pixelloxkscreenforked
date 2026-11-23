@@ -2819,6 +2819,13 @@ class com.android.systemui.keyguard.ui.preview.KeyguardPreviewRenderer extends j
   field windowRootViewBlurInteractor
   method fetchThemeStyleFromSetting(kotlin.coroutines.jvm.internal.ContinuationImpl)
   method updateClockAppearance(com.android.systemui.plugins.keyguard.ui.clocks.ClockController,android.content.res.Resources,kotlin.coroutines.Continuation)
+class com.android.systemui.keyguard.ui.view.DeviceEntryIconView extends android.widget.FrameLayout
+  field accessibilityHintType
+  field aodFpDrawable
+  field bgView
+  field iconView
+  field touchHandlingView
+  method getIconState(com.android.systemui.keyguard.ui.view.DeviceEntryIconView$IconType,boolean)
 class com.android.systemui.keyguard.ui.view.layout.sections.SmartspaceSection extends com.android.systemui.keyguard.shared.model.KeyguardSection
   field context
   field keyguardClockViewModel

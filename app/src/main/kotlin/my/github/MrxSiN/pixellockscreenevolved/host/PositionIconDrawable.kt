@@ -19,12 +19,13 @@ import android.graphics.drawable.Drawable
  *   the tab's icon.
  * - [Glyph.GLASS]: Material Symbols "water_drop", the Glass tab's icon.
  * - [Glyph.BELL]: Material Symbols "notifications", the Notifications tab's icon.
+ * - [Glyph.FINGERPRINT]: three rings around a core, as a fingerprint is drawn, the Fingerprint tab's icon.
  * - [Glyph.DRAG]: a fingertip with an arrow above and below, beside the hint
  *   that the clock is dragged up and down the preview ([PickerDragHint]).
  */
 internal class PositionIconDrawable(private val sizePx: Int, glyph: Glyph = Glyph.TAB) : Drawable() {
 
-    enum class Glyph { TAB, DRAG, GLASS, BELL }
+    enum class Glyph { TAB, DRAG, GLASS, BELL, FINGERPRINT }
 
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.WHITE }
     private val path = Path().apply {
@@ -76,6 +77,17 @@ internal class PositionIconDrawable(private val sizePx: Int, glyph: Glyph = Glyp
                 lineTo(14f, 20f)
                 cubicTo(14f, 21.1f, 13.1f, 22f, 12f, 22f)
                 close()
+            }
+            Glyph.FINGERPRINT -> {
+                fillType = Path.FillType.EVEN_ODD
+                // Rings of a fingerprint, as concentric annuli, open at the bottom by the core.
+                addCircle(12f, 12f, 10f, Path.Direction.CW)
+                addCircle(12f, 12f, 8.5f, Path.Direction.CW)
+                addCircle(12f, 12f, 7f, Path.Direction.CW)
+                addCircle(12f, 12f, 5.5f, Path.Direction.CW)
+                addCircle(12f, 12f, 4f, Path.Direction.CW)
+                addCircle(12f, 12f, 2.5f, Path.Direction.CW)
+                addCircle(12f, 12f, 1f, Path.Direction.CW)
             }
             Glyph.DRAG -> {
                 fillType = Path.FillType.EVEN_ODD

@@ -139,7 +139,7 @@ internal class PickerClockState(private val api: ClockPluginApi) {
 
     /** The tabs this module adds to the clock sheet, riding on its Size tab's slot ([PickerPositionTab]). */
     enum class SheetTab {
-        POSITION, GLASS, NOTIFICATIONS;
+        POSITION, GLASS, NOTIFICATIONS, FINGERPRINT;
 
         companion object {
             /** The tab an option shown outside the Size tab is in, or null for the Size tab. */
@@ -147,6 +147,7 @@ internal class PickerClockState(private val api: ClockPluginApi) {
                 ClockOption.Tab.SIZE -> null
                 ClockOption.Tab.GLASS -> GLASS
                 ClockOption.Tab.NOTIFICATIONS -> NOTIFICATIONS
+                ClockOption.Tab.FINGERPRINT -> FINGERPRINT
             }
         }
     }

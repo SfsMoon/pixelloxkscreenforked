@@ -29,9 +29,9 @@ import my.github.MrxSiN.pixellockscreenevolved.clock.EdgeToEdgeClockFace
 import my.github.MrxSiN.pixellockscreenevolved.clock.FaceSize
 import my.github.MrxSiN.pixellockscreenevolved.clock.FontSource
 import my.github.MrxSiN.pixellockscreenevolved.clock.FramedClockFace
-import my.github.MrxSiN.pixellockscreenevolved.clock.NotificationGlassFace
-import my.github.MrxSiN.pixellockscreenevolved.clock.parts.NotificationGlass
-import my.github.MrxSiN.pixellockscreenevolved.clock.parts.NotificationLook
+import my.github.MrxSiN.pixellockscreenevolved.clock.LockScreenGlassFace
+import my.github.MrxSiN.pixellockscreenevolved.clock.parts.SurfaceGlass
+import my.github.MrxSiN.pixellockscreenevolved.clock.parts.SurfaceLook
 import my.github.MrxSiN.pixellockscreenevolved.clock.ResizableClockFace
 import my.github.MrxSiN.pixellockscreenevolved.clock.SmartspaceClockFace
 import my.github.MrxSiN.pixellockscreenevolved.clock.WeatherClockFace
@@ -94,7 +94,7 @@ class PosterClockStyle(private val font: PosterFont, private val fonts: FontSour
         fonts.typeface(context, font.asset) ?: Typeface.create("sans-serif-condensed", Typeface.BOLD)
 
     private inner class Face(context: Context, private val size: FaceSize, typeface: Typeface) :
-        ClockFace, ResizableClockFace, DozingClockFace, WeatherClockFace, ConfigurableClockFace, EdgeToEdgeClockFace, BackdropClockFace, FramedClockFace, SmartspaceClockFace, NotificationGlassFace {
+        ClockFace, ResizableClockFace, DozingClockFace, WeatherClockFace, ConfigurableClockFace, EdgeToEdgeClockFace, BackdropClockFace, FramedClockFace, SmartspaceClockFace, LockScreenGlassFace {
 
         private val context = context
         private val shortSide = context.resources.displayMetrics.let { minOf(it.widthPixels, it.heightPixels) }.toFloat()
@@ -114,10 +114,13 @@ class PosterClockStyle(private val font: PosterFont, private val fonts: FontSour
         private var weightShare = font.weights.initialShare
         private var frame = ClockFrame.NATURAL
         private var glass = GlassLook()
-        private var notifications = NotificationLook()
+        private var notifications = SurfaceLook(SurfaceLook.Surface.NOTIFICATIONS)
+        private var fingerprint = SurfaceLook(SurfaceLook.Surface.FINGERPRINT)
         private var shownBackdrop: Backdrop? = null
 
-        override val notificationGlass: NotificationGlass? get() = notifications.glassBeside(glass)
+        override val notificationGlass: SurfaceGlass? get() = notifications.beside(glass)
+
+        override val fingerprintGlass: SurfaceGlass? get() = fingerprint.beside(glass)
 
         override val backdrop: Backdrop? get() = shownBackdrop
         private var datePlace = DatePlace.ABOVE
@@ -258,9 +261,13 @@ class PosterClockStyle(private val font: PosterFont, private val fonts: FontSour
                     return view.invalidate()
                 }
                 else -> {
+                    // The surfaces beside the face are drawn again before the next frame.
                     notifications.with(key, step)?.let {
                         notifications = it
-                        // The notifications beside the face are drawn again before the next frame.
+                        return view.invalidate()
+                    }
+                    fingerprint.with(key, step)?.let {
+                        fingerprint = it
                         return view.invalidate()
                     }
                     glass = glass.with(key, step) ?: return

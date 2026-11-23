@@ -86,27 +86,54 @@ class GlassLookTest {
     }
 }
 
-class NotificationLookTest {
+class SurfaceLookTest {
 
     private val clock = GlassLook()
+    private val surfaces = my.github.MrxSiN.pixellockscreenevolved.clock.parts.SurfaceLook.Surface.entries
 
     @Test
-    fun everyNotificationSliderStartsAtTheDefaultLook() {
-        val start = my.github.MrxSiN.pixellockscreenevolved.clock.parts.NotificationLook.options
-            .fold(my.github.MrxSiN.pixellockscreenevolved.clock.parts.NotificationLook()) { look, option -> requireNotNull(look.with(option.key, option.defaultStep)) }
-        assertEquals(my.github.MrxSiN.pixellockscreenevolved.clock.parts.NotificationLook(), start)
+    fun everySurfaceSliderStartsAtTheDefaultLook() {
+        for (surface in surfaces) {
+            val start = surface.options.fold(my.github.MrxSiN.pixellockscreenevolved.clock.parts.SurfaceLook(surface)) { look, option ->
+                requireNotNull(look.with(option.key, option.defaultStep))
+            }
+            assertEquals(my.github.MrxSiN.pixellockscreenevolved.clock.parts.SurfaceLook(surface), start)
+        }
     }
 
     @Test
-    fun stockNotificationsHaveNoGlass() {
-        val stock = my.github.MrxSiN.pixellockscreenevolved.clock.parts.NotificationLook(glass = false)
-        assertEquals(null, stock.glassBeside(clock))
+    fun notificationKeysAreTheOnesStoredBefore() {
+        val keys = my.github.MrxSiN.pixellockscreenevolved.clock.parts.SurfaceLook.Surface.NOTIFICATIONS.options.map { it.key }
+        assert("PIXEL_LOCK_SCREEN_EVOLVED_NOTIFICATION_GLASS" in keys)
+        assert("PIXEL_LOCK_SCREEN_EVOLVED_NOTIFICATION_OUTLINE_WIDTH" in keys)
     }
 
     @Test
-    fun aCardAlwaysKeepsSomeOfItsOwnColour() {
-        val clear = clock.copy(tint = 0f)
-        val glass = requireNotNull(my.github.MrxSiN.pixellockscreenevolved.clock.parts.NotificationLook().glassBeside(clear))
-        assert(glass.look.tint >= 0.3f)
+    fun onlyTheFingerprintMayBeClear() {
+        val notifications = my.github.MrxSiN.pixellockscreenevolved.clock.parts.SurfaceLook.Surface.NOTIFICATIONS
+        val fingerprint = my.github.MrxSiN.pixellockscreenevolved.clock.parts.SurfaceLook.Surface.FINGERPRINT
+        assert(my.github.MrxSiN.pixellockscreenevolved.clock.parts.SurfaceLook.Mode.CLEAR !in notifications.modes)
+        val pastTheLast = requireNotNull(my.github.MrxSiN.pixellockscreenevolved.clock.parts.SurfaceLook(notifications).with(notifications.modeKey, 2)).beside(clock)
+        assert(requireNotNull(pastTheLast).look != null)
+        val clear = requireNotNull(my.github.MrxSiN.pixellockscreenevolved.clock.parts.SurfaceLook(fingerprint).with(fingerprint.modeKey, 2)).beside(clock)
+        assertEquals(null, requireNotNull(clear).look)
+    }
+
+    @Test
+    fun stockSurfacesHaveNoGlass() {
+        val stock = my.github.MrxSiN.pixellockscreenevolved.clock.parts.SurfaceLook(
+            my.github.MrxSiN.pixellockscreenevolved.clock.parts.SurfaceLook.Surface.NOTIFICATIONS,
+            mode = my.github.MrxSiN.pixellockscreenevolved.clock.parts.SurfaceLook.Mode.STOCK,
+        )
+        assertEquals(null, stock.beside(clock))
+    }
+
+    @Test
+    fun glassAlwaysKeepsSomeOfTheSurfacesOwnColour() {
+        val glass = requireNotNull(
+            my.github.MrxSiN.pixellockscreenevolved.clock.parts.SurfaceLook(my.github.MrxSiN.pixellockscreenevolved.clock.parts.SurfaceLook.Surface.FINGERPRINT)
+                .beside(clock.copy(tint = 0f)),
+        )
+        assert(requireNotNull(glass.look).tint >= 0.3f)
     }
 }

@@ -4,7 +4,7 @@ import kotlin.math.roundToInt
 
 import my.github.MrxSiN.pixellockscreenevolved.clock.ClockOption
 import my.github.MrxSiN.pixellockscreenevolved.clock.parts.GlassLook
-import my.github.MrxSiN.pixellockscreenevolved.clock.parts.NotificationLook
+import my.github.MrxSiN.pixellockscreenevolved.clock.parts.SurfaceLook
 
 /**
  * What Wallpaper & style lets a person choose for a Poster clock: how its hours
@@ -44,7 +44,7 @@ object PosterOptions {
         axis(WEIGHT_KEY, "Weight", font.weights),
         ClockOption(DATE_KEY, "Date", DatePlace.entries.map { it.title }, DatePlace.ABOVE.ordinal),
         ClockOption(SMARTSPACE_KEY, "Smartspace", SMARTSPACE, 0),
-    ) + GlassLook.options + NotificationLook.options
+    ) + GlassLook.options + SurfaceLook.Surface.NOTIFICATIONS.options + SurfaceLook.Surface.FINGERPRINT.options
 
     /** Whether SystemUI's smartspace card is shown at [step]. */
     fun showsSmartspaceAt(step: Int): Boolean = step >= 1

@@ -1,38 +1,26 @@
 package my.github.MrxSiN.pixellockscreenevolved.host
 
 import android.content.ContentResolver
-import android.content.res.Configuration
-import android.graphics.BitmapShader
 import android.graphics.Canvas
-import android.graphics.Color
-import android.graphics.Matrix
-import android.graphics.Paint
-import android.graphics.Path
 import android.graphics.RectF
-import android.graphics.Shader
 import android.view.View
 import android.view.ViewGroup
-import android.view.ViewTreeObserver
 
 import java.util.Collections
 import java.util.WeakHashMap
 
 import kotlin.math.abs
 
-import my.github.MrxSiN.pixellockscreenevolved.clock.Backdrop
-import my.github.MrxSiN.pixellockscreenevolved.clock.parts.GlassLook
-import my.github.MrxSiN.pixellockscreenevolved.clock.parts.NotificationGlass
-import my.github.MrxSiN.pixellockscreenevolved.clock.parts.LiquidGlass
 import my.github.MrxSiN.pixellockscreenevolved.core.Logger
 import my.github.MrxSiN.pixellockscreenevolved.hook.Hooks
 import my.github.MrxSiN.pixellockscreenevolved.hook.HostPatch
 
 /**
  * The lock screen's notifications beside a clock of this module's that has a
- * say in them ([my.github.MrxSiN.pixellockscreenevolved.clock.NotificationGlassFace]):
+ * say in them ([my.github.MrxSiN.pixellockscreenevolved.clock.LockScreenGlassFace]):
  *
  * - each card's background is drawn as the face's notification glass, through
- *   the photo behind ([LiquidGlass]), in place of SystemUI's ([CardGlass]);
+ *   the photo behind, in place of SystemUI's ([GlassSurfacePainter]);
  * - the stack is lifted to stand right under the clock, where the scene left
  *   room for rows it does not show; it is never pushed down;
  * - whether a full card stands on the lock screen is told to the depth effect
@@ -48,7 +36,8 @@ internal class LockScreenNotifications(
     private val logger: Logger,
 ) : HostPatch {
 
-    private val cards = WeakHashMap<View, CardGlass>()
+    private val cards = WeakHashMap<View, GlassSurfacePainter>()
+    private val cardBounds = RectF()
     private val stacks = Collections.newSetFromMap(WeakHashMap<View, Boolean>())
     private val lifted = WeakHashMap<View, Float>()
 
@@ -79,15 +68,14 @@ internal class LockScreenNotifications(
     /** Draws [view]'s card as glass into [canvas], where the clock beside it asks; false to leave it to SystemUI. */
     private fun drawGlass(api: LockScreenNotificationApi, view: View, canvas: Canvas): Boolean {
         if (!canvas.isHardwareAccelerated) return status.skip("software canvas")
-        val face = ModuleClockFaces.notificationGlassIn(view.rootView) ?: return status.skip("no clock beside")
+        val face = ModuleClockFaces.glassFaceIn(view.rootView) ?: return status.skip("no clock beside")
         // In the shade, pulled down over the lock screen, the cards are SystemUI's own again.
         if (api.cardOnLockScreen(view) == false) return status.skip("in the shade")
-        val look = face.notificationGlass ?: return status.skip("stock chosen")
-        val backdrop = face.backdrop ?: return status.skip("no photo")
-        val card = cards.getOrPut(view) { CardGlass(view) }
-        val bounds = card.bounds
-        if (!api.backgroundBounds(view, bounds)) return status.skip("empty card")
-        if (!card.draw(canvas, api.backgroundRadii(view), look, backdrop)) return status.skip("photo not placed")
+        val glass = face.notificationGlass ?: return status.skip("stock chosen")
+        if (!api.backgroundBounds(view, cardBounds)) return status.skip("empty card")
+        val painter = cards.getOrPut(view) { GlassSurfacePainter(view) }
+        val reference = REFERENCE_DP * view.resources.displayMetrics.density
+        if (!painter.draw(canvas, cardBounds, api.backgroundRadii(view), glass, face.backdrop, reference)) return status.skip("photo not placed")
         status.drew(view.context.contentResolver)
         return true
     }
@@ -109,7 +97,7 @@ internal class LockScreenNotifications(
     /** Lifts [stack] to stand right under the clock, and says whether full notifications stand on the lock screen. */
     private fun place(stack: View, onLockScreen: Boolean, isCard: (View) -> Boolean) {
         // In the shade, pulled down over the lock screen, the stack is SystemUI's to place, and the depth effect's to keep.
-        val face = ModuleClockFaces.notificationGlassIn(stack.rootView)?.view?.takeIf { onLockScreen }
+        val face = ModuleClockFaces.glassFaceIn(stack.rootView)?.view?.takeIf { onLockScreen }
         lookAtRows(stack, isCard)
         val firstRow = rowTop
         val applied = lifted[stack] ?: 0f
@@ -150,87 +138,6 @@ internal class LockScreenNotifications(
             val top = rowTop
             if (top == null || rowBounds.top < top) rowTop = rowBounds.top
             if (isCard(row)) cardShown = true
-        }
-    }
-
-    /**
-     * One card's background as glass: the rounded rectangle SystemUI draws it
-     * in, its height field built again only as its size or look changes, and
-     * the card drawn again before any frame it has moved in, so the photo
-     * through it stays where the photo is.
-     */
-    private class CardGlass(private val view: View) {
-        val bounds = RectF()
-        private val liquid = LiquidGlass()
-        private val path = Path()
-        private val rim = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            style = Paint.Style.STROKE
-            color = Color.WHITE
-        }
-        private val shaped = RectF()
-        private var shapedRadii: FloatArray? = null
-        private var shapedLook: GlassLook? = null
-        private var shapedTint = 0
-        private var placedFor: Backdrop? = null
-        private var sharp: BitmapShader? = null
-        private var frosted: BitmapShader? = null
-        private val sharpToView = Matrix()
-        private val frostedToView = Matrix()
-        private val drawnAt = Matrix()
-        private val standsAt = Matrix()
-
-        init {
-            view.viewTreeObserver.addOnPreDrawListener(object : ViewTreeObserver.OnPreDrawListener {
-                override fun onPreDraw(): Boolean {
-                    if (placedFor != null) {
-                        standsAt.reset()
-                        view.transformMatrixToGlobal(standsAt)
-                        if (standsAt != drawnAt) view.invalidate()
-                    }
-                    return true
-                }
-            })
-        }
-
-        fun draw(canvas: Canvas, radii: FloatArray?, glass: NotificationGlass, backdrop: Backdrop): Boolean {
-            val look = glass.look
-            val tint = cardColour(view)
-            if (bounds != shaped || !radii.contentEquals(shapedRadii) || look != shapedLook || tint != shapedTint || !liquid.isReady) {
-                shaped.set(bounds)
-                shapedRadii = radii?.copyOf()
-                shapedLook = look
-                shapedTint = tint
-                path.reset()
-                path.addRoundRect(bounds, radii ?: FloatArray(8), Path.Direction.CW)
-                liquid.prepare(path, bounds, REFERENCE_DP * view.resources.displayMetrics.density, tint, look)
-            }
-            if (backdrop !== placedFor) {
-                placedFor = backdrop
-                sharp = BitmapShader(backdrop.picture, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP)
-                frosted = BitmapShader(backdrop.frosted, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP)
-            }
-            val sharpShader = sharp ?: return false
-            val frostedShader = frosted ?: return false
-            drawnAt.reset()
-            view.transformMatrixToGlobal(drawnAt)
-            if (!backdrop.place(view, sharpToView)) return false
-            sharpShader.setLocalMatrix(sharpToView)
-            frostedToView.setScale(backdrop.picture.width.toFloat() / backdrop.frosted.width, backdrop.picture.height.toFloat() / backdrop.frosted.height)
-            frostedToView.postConcat(sharpToView)
-            frostedShader.setLocalMatrix(frostedToView)
-            liquid.draw(canvas, path, sharpShader, frostedShader, 1f)
-            if (glass.outline > 0f) {
-                rim.alpha = (glass.outline * 255).toInt()
-                rim.strokeWidth = glass.outlineWidthDp * view.resources.displayMetrics.density
-                canvas.drawPath(path, rim)
-            }
-            return true
-        }
-
-        /** The colour a card is tinted toward: a dark card's in the dark theme, a light one's otherwise. */
-        private fun cardColour(view: View): Int {
-            val night = view.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK == Configuration.UI_MODE_NIGHT_YES
-            return if (night) DARK_CARD else LIGHT_CARD
         }
     }
 
@@ -307,7 +214,5 @@ internal class LockScreenNotifications(
         /** The size glass on a card is shaped for: its bevel and how far it bends what is behind. */
         const val REFERENCE_DP = 220f
 
-        val DARK_CARD = Color.rgb(24, 24, 28)
-        val LIGHT_CARD = Color.rgb(246, 246, 250)
     }
 }

@@ -184,6 +184,7 @@ internal class PickerPositionTab(
                 PickerClockState.SheetTab.POSITION -> PositionIconDrawable.Glyph.TAB
                 PickerClockState.SheetTab.GLASS -> PositionIconDrawable.Glyph.GLASS
                 PickerClockState.SheetTab.NOTIFICATIONS -> PositionIconDrawable.Glyph.BELL
+                PickerClockState.SheetTab.FINGERPRINT -> PositionIconDrawable.Glyph.FINGERPRINT
             }
             val icon = api.loadedIcon(PositionIconDrawable(PickerRows.dp(context, ICON_DP), glyph), title) ?: return null
             (api.tab(icon, title, false, function { open(tab) }) to api.tab(icon, title, true, null)).also { tabs[tab] = it }
@@ -195,6 +196,7 @@ internal class PickerPositionTab(
         PickerClockState.SheetTab.POSITION -> TITLE
         PickerClockState.SheetTab.GLASS -> GLASS_TITLE
         PickerClockState.SheetTab.NOTIFICATIONS -> NOTIFICATIONS_TITLE
+        PickerClockState.SheetTab.FINGERPRINT -> FINGERPRINT_TITLE
     }
 
     /**
@@ -313,6 +315,7 @@ internal class PickerPositionTab(
         const val TITLE = "Position"
         const val GLASS_TITLE = "Glass"
         const val NOTIFICATIONS_TITLE = "Notifications"
+        const val FINGERPRINT_TITLE = "Fingerprint"
         const val ICON_DP = 24f
         const val SIZE = "SIZE"
         const val TAB_LIST = "tab_list"

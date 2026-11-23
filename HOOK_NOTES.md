@@ -868,3 +868,14 @@ SystemUI's look and place.
 | `statusbar.notification.row.ActivatableNotificationView.mOnKeyguard` | Whether a card stands on the lock screen; in the shade pulled down over it, the card keeps SystemUI's background. |
 | `statusbar.notification.stack.NotificationStackScrollLayout.onKeyguard()` | Whether the stack stands on the lock screen; in the shade it is neither lifted nor turns the depth effect off. |
 | `statusbar.notification.row.ExpandableNotificationRow` (class) | A full card, told from the shelf of icons compact notifications fold into: while one stands on the lock screen, the depth effect is off. |
+
+## Lock screen fingerprint icon (`CP3A.261005.005`)
+
+Read from a capture of `CP3A.261005.005` with the discovery file; not yet
+captured on `CP4A.261105.040.A1`. Optional: missing, the disc keeps
+SystemUI's look.
+
+| Member | Why |
+|---|---|
+| `keyguard.ui.view.DeviceEntryIconView` (class) | The lock screen's device entry icon, looked for in the window of a clock that has a say in it. |
+| `DeviceEntryIconView.bgView` | The image view drawing the disc behind the fingerprint's mark; its picture is swapped for glass or nothing, as large as SystemUI's own, and given back when the clock asks for SystemUI's own. SystemUI keeps tinting and fading the view. |
