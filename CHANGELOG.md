@@ -98,6 +98,11 @@
 
 ### Fixed
 
+- With compact lock screen notifications the depth effect stayed on beside the
+  newest one, which compact notifications still show as a full card: it now
+  goes off whenever a full card (`ExpandableNotificationRow`) stands on the
+  lock screen, whichever way notifications are shown, and stays on beside a
+  shelf of icons alone. SystemUI's compact setting is no longer read.
 - Pulled down over the lock screen, the shade kept glass cards and the stack
   kept being lifted toward the clock: a card's own state
   (`ActivatableNotificationView.mOnKeyguard`) and the stack's

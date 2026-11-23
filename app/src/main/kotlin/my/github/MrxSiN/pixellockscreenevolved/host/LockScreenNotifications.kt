@@ -35,10 +35,10 @@ import my.github.MrxSiN.pixellockscreenevolved.hook.HostPatch
  *   the photo behind ([LiquidGlass]), in place of SystemUI's ([CardGlass]);
  * - the stack is lifted to stand right under the clock, where the scene left
  *   room for rows it does not show; it is never pushed down;
- * - whether full notifications stand on the lock screen is told to the depth
- *   effect ([shown]), which leaves the time whole while they do, as cards and
- *   a subject in front of the time made too much to read. Compact
- *   notifications, a row of icons, leave it be.
+ * - whether a full card stands on the lock screen is told to the depth effect
+ *   ([shown]), which leaves the time whole while one does, as cards and a
+ *   subject in front of the time made too much to read. The newest of compact
+ *   notifications is a full card too; a shelf of icons alone leaves it be.
  *
  * Away from such a clock, in the shade or beside a Pixel clock, everything is
  * SystemUI's own.
@@ -51,8 +51,6 @@ internal class LockScreenNotifications(
     private val cards = WeakHashMap<View, CardGlass>()
     private val stacks = Collections.newSetFromMap(WeakHashMap<View, Boolean>())
     private val lifted = WeakHashMap<View, Float>()
-    private var compact: SecureIntSetting? = null
-    private var compactNow = true
 
     override fun install(classLoader: ClassLoader) {
         val api = try {
@@ -73,7 +71,7 @@ internal class LockScreenNotifications(
         hooks.after(api.stackComposed) { element, _ ->
             runCatching {
                 val stack = api.stackOf(requireNotNull(element))
-                if (stack == null) status.skip("no stack view") else follow(stack) { api.stackOnLockScreen(stack) != false }
+                if (stack == null) status.skip("no stack view") else follow(stack, { api.stackOnLockScreen(stack) != false }, api::isCard)
             }.onFailure { status.failed("stack", it) }
         }
     }
@@ -95,28 +93,25 @@ internal class LockScreenNotifications(
     }
 
     /** Follows the lock screen's notification [stack] before each draw, once. */
-    private fun follow(stack: View, onLockScreen: () -> Boolean) {
+    private fun follow(stack: View, onLockScreen: () -> Boolean, isCard: (View) -> Boolean) {
         if (!stacks.add(stack)) return
         status.followed++
-        if (compact == null) {
-            compact = COMPACT
-            stack.context.contentResolver.let { resolver -> watchCompact(resolver) }
-        }
-        BeforeEachDraw.follow(stack) { place(stack, onLockScreen()) }
+        BeforeEachDraw.follow(stack) { place(stack, onLockScreen(), isCard) }
     }
 
-    private fun watchCompact(resolver: ContentResolver) {
-        COMPACT.observe(resolver) { compactNow = COMPACT.get(resolver) != 0 }
-    }
+    /** What the stack shows, as last looked at: the top of its highest row, and whether any row is a full card. */
+    private var rowTop: Float? = null
+    private var cardShown = false
 
     private val rowBounds = RectF()
     private val faceBounds = RectF()
 
     /** Lifts [stack] to stand right under the clock, and says whether full notifications stand on the lock screen. */
-    private fun place(stack: View, onLockScreen: Boolean) {
+    private fun place(stack: View, onLockScreen: Boolean, isCard: (View) -> Boolean) {
         // In the shade, pulled down over the lock screen, the stack is SystemUI's to place, and the depth effect's to keep.
         val face = ModuleClockFaces.notificationGlassIn(stack.rootView)?.view?.takeIf { onLockScreen }
-        val firstRow = firstRowTop(stack)
+        lookAtRows(stack, isCard)
+        val firstRow = rowTop
         val applied = lifted[stack] ?: 0f
         var wanted = 0f
         if (face != null && firstRow != null && face.isShown) {
@@ -129,26 +124,33 @@ internal class LockScreenNotifications(
             stack.translationY += wanted - applied
             if (wanted == 0f) lifted.remove(stack) else lifted[stack] = wanted
         }
-        val nowShown = face != null && firstRow != null && !compactNow
+        // A full card, compact notifications' newest included; a shelf of icons alone leaves the depth effect be.
+        val nowShown = face != null && cardShown
         if (nowShown != shown) {
             shown = nowShown
             face?.invalidate()
         }
-        status.placed(stack.context.contentResolver, face != null, firstRow != null, wanted, compactNow, nowShown)
+        status.placed(stack.context.contentResolver, face != null, firstRow != null, wanted, cardShown, nowShown)
     }
 
-    /** The top, in window pixels, of the highest card [stack] shows, or null where it shows none. */
-    private fun firstRowTop(stack: View): Float? {
-        val group = stack as? ViewGroup ?: return null
-        var top: Float? = null
+    /**
+     * Looks at what [stack] shows: the top, in window pixels, of its highest
+     * row ([rowTop], null where it shows none), and whether any row is a full
+     * card ([cardShown]) rather than the shelf of icons compact notifications fold into.
+     */
+    private fun lookAtRows(stack: View, isCard: (View) -> Boolean) {
+        rowTop = null
+        cardShown = false
+        val group = stack as? ViewGroup ?: return
         for (i in 0 until group.childCount) {
             val row = group.getChildAt(i)
             if (row.visibility != View.VISIBLE || row.height <= 0 || row.alpha <= 0f) continue
             ViewBounds.inWindow(row, rowBounds, beforeDraw = true)
             if (rowBounds.height() <= 0f) continue
-            if (top == null || rowBounds.top < top) top = rowBounds.top
+            val top = rowTop
+            if (top == null || rowBounds.top < top) rowTop = rowBounds.top
+            if (isCard(row)) cardShown = true
         }
-        return top
     }
 
     /**
@@ -261,8 +263,8 @@ internal class LockScreenNotifications(
             failure = "$where: ${error.javaClass.simpleName}: ${error.message}"
         }
 
-        fun placed(resolver: ContentResolver, clock: Boolean, rows: Boolean, lifted: Float, compact: Boolean, cardsShown: Boolean) {
-            lift = "clock=$clock rows=$rows lifted=${lifted.toInt()}px compact=$compact depthOff=$cardsShown"
+        fun placed(resolver: ContentResolver, clock: Boolean, rows: Boolean, lifted: Float, card: Boolean, depthOff: Boolean) {
+            lift = "clock=$clock rows=$rows lifted=${lifted.toInt()}px fullCard=$card depthOff=$depthOff"
             write(resolver)
         }
 
@@ -290,8 +292,6 @@ internal class LockScreenNotifications(
         var shown: Boolean = false
             private set
 
-        /** SystemUI's own setting for compact lock screen notifications, a row of icons; on unless turned off. */
-        private val COMPACT = SecureIntSetting("lock_screen_notification_minimalism", 1)
 
         /** What SystemUI's background is drawn into while glass stands in its place: nothing. */
         private val NOTHING = Canvas()

@@ -32,6 +32,7 @@ internal class LockScreenNotificationApi(classLoader: ClassLoader) {
     private val alignedToRight: Method = background.getDeclaredMethod("isAlignedToRight").apply { isAccessible = true }
 
     private val card = classLoader.hostClass(CARD)
+    private val fullCard = classLoader.hostClass(ROW)
     private val cardOnKeyguard: Field = card.field("mOnKeyguard")
     private val stack = classLoader.hostClass(STACK)
     private val stackOnKeyguard: Method = stack.getDeclaredMethod("onKeyguard").apply { isAccessible = true }
@@ -72,6 +73,9 @@ internal class LockScreenNotificationApi(classLoader: ClassLoader) {
         return parent?.let { cardOnKeyguard.getBoolean(it) }
     }
 
+    /** Whether [view] is a full notification card, rather than the shelf of icons or another row of the stack. */
+    fun isCard(view: View): Boolean = fullCard.isInstance(view)
+
     /** Whether the notification [stackView] stands on the lock screen rather than in the shade; null where it cannot say. */
     fun stackOnLockScreen(stackView: View): Boolean? =
         if (stack.isInstance(stackView)) stackOnKeyguard.invoke(stackView) as? Boolean else null
@@ -93,6 +97,7 @@ internal class LockScreenNotificationApi(classLoader: ClassLoader) {
     private companion object {
         const val BACKGROUND = "com.android.systemui.statusbar.notification.row.NotificationBackgroundView"
         const val CARD = "com.android.systemui.statusbar.notification.row.ActivatableNotificationView"
+        const val ROW = "com.android.systemui.statusbar.notification.row.ExpandableNotificationRow"
         const val STACK = "com.android.systemui.statusbar.notification.stack.NotificationStackScrollLayout"
         const val STACK_ELEMENTS = "com.android.systemui.keyguard.ui.composable.elements.NotificationStackElementProvider"
     }

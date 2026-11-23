@@ -865,7 +865,6 @@ SystemUI's look and place.
 | `keyguard.ui.composable.elements.NotificationStackElementProvider$NotificationElement.LockscreenElement` | Composes the stack into the lock screen scene; after it, the stack view is followed. |
 | `NotificationStackElementProvider$NotificationElement.this$0`, `NotificationStackElementProvider.stackScrollView` | The stack view the element hosts: lifted, by `translationY` added to SystemUI's own, to stand right under the clock, and read for whether cards are shown, which turns the depth effect off while full notifications stand on the lock screen. |
 
-`lock_screen_notification_minimalism` (secure setting, SystemUI's own) tells
-compact notifications, a row of icons, from full ones; on unless set to 0.
 | `statusbar.notification.row.ActivatableNotificationView.mOnKeyguard` | Whether a card stands on the lock screen; in the shade pulled down over it, the card keeps SystemUI's background. |
 | `statusbar.notification.stack.NotificationStackScrollLayout.onKeyguard()` | Whether the stack stands on the lock screen; in the shade it is neither lifted nor turns the depth effect off. |
+| `statusbar.notification.row.ExpandableNotificationRow` (class) | A full card, told from the shelf of icons compact notifications fold into: while one stands on the lock screen, the depth effect is off. |
