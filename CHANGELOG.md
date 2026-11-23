@@ -102,6 +102,8 @@
   the picture of `DeviceEntryIconView.bgView`). Notifications and the
   fingerprint share one surface model and painter (`SurfaceLook`,
   `GlassSurfacePainter`); notification choices keep their stored keys.
+- `CP4A.261105.040.A1` recorded again on the device, so its SystemUI snapshot
+  now holds the notification and fingerprint classes those contracts check.
 
 ### Fixed
 
