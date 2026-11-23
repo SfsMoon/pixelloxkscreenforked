@@ -92,7 +92,8 @@ class HostDescriptorCapture(
         /**
          * The packages explored for features being written: the lock screen's
          * notifications, where they stand and how they are drawn, for glass
-         * notifications and notifications placed under the clock.
+         * notifications and notifications placed under the clock; and the
+         * fingerprint icon, how its background is drawn.
          */
         private val EXPLORED = mapOf(
             Host.SYSTEMUI to listOf(
@@ -101,6 +102,12 @@ class HostDescriptorCapture(
                 "com.android.systemui.statusbar.notification.shared",
                 "com.android.systemui.keyguard.ui.composable",
                 "com.android.systemui.notifications.ui",
+                // The fingerprint icon on the lock screen, for a glass or clear one.
+                "com.android.systemui.keyguard.ui.view",
+                "com.android.systemui.keyguard.ui.binder",
+                "com.android.systemui.keyguard.ui.viewmodel",
+                "com.android.systemui.deviceentry",
+                "com.android.systemui.biometrics.ui",
             ),
         )
     }
