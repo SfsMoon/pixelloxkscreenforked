@@ -98,6 +98,11 @@
 
 ### Fixed
 
+- Pulled down over the lock screen, the shade kept glass cards and the stack
+  kept being lifted toward the clock: a card's own state
+  (`ActivatableNotificationView.mOnKeyguard`) and the stack's
+  (`NotificationStackScrollLayout.onKeyguard()`) now say whether they stand
+  on the lock screen, and in the shade both are SystemUI's again.
 - Glass notifications, the lifted stack and the depth effect's rule beside
   notifications worked now and then: a failure in their hooks, as the stack
   held lazily behind a provider, counted against the feature until it was
@@ -106,6 +111,8 @@
   does is written to `pixel_lock_screen_evolved_notifications_status`, a
   secure setting, where the module's log does not reach logcat. The stack
   stands 4 dp under the clock.
+- Outline and Outline width sliders for the line around glass cards, which
+  can be turned off.
 - Notification options moved to a Notifications tab of their own
   (`ClockOption.Tab.NOTIFICATIONS`); the tabs this module adds are listed
   from the options each clock has.

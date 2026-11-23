@@ -209,6 +209,9 @@ object HostContracts {
         optional("$NOTIFICATION_STACK_ELEMENTS\$NotificationElement", Member.Method("LockscreenElement"), LOCK_SCREEN_NOTIFICATIONS),
         optional("$NOTIFICATION_STACK_ELEMENTS\$NotificationElement", Member.Field("this\$0"), LOCK_SCREEN_NOTIFICATIONS),
         optional(NOTIFICATION_STACK_ELEMENTS, Member.Field("stackScrollView"), LOCK_SCREEN_NOTIFICATIONS),
+        // Whether a card, and the stack, stand on the lock screen rather than in the shade pulled down over it.
+        optional("com.android.systemui.statusbar.notification.row.ActivatableNotificationView", Member.Field("mOnKeyguard"), LOCK_SCREEN_NOTIFICATIONS),
+        optional("com.android.systemui.statusbar.notification.stack.NotificationStackScrollLayout", method("onKeyguard"), LOCK_SCREEN_NOTIFICATIONS),
     )
 
     val picker: List<HostContract> = clockPlugin(setOf(PICKER_CLOCKS, PICKER_CLOCK_SIZE, PICKER_CLOCK_POSITION)) + listOf(

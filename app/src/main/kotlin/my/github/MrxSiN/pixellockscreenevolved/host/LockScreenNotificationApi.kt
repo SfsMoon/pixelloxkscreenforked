@@ -31,6 +31,11 @@ internal class LockScreenNotificationApi(classLoader: ClassLoader) {
     private val cornerRadii: Field = background.field("mCornerRadii")
     private val alignedToRight: Method = background.getDeclaredMethod("isAlignedToRight").apply { isAccessible = true }
 
+    private val card = classLoader.hostClass(CARD)
+    private val cardOnKeyguard: Field = card.field("mOnKeyguard")
+    private val stack = classLoader.hostClass(STACK)
+    private val stackOnKeyguard: Method = stack.getDeclaredMethod("onKeyguard").apply { isAccessible = true }
+
     private val element = classLoader.hostClass("$STACK_ELEMENTS\$NotificationElement")
 
     /** Composes the stack into the lock screen scene, where it can be found and followed. */
@@ -55,6 +60,22 @@ internal class LockScreenNotificationApi(classLoader: ClassLoader) {
         return true
     }
 
+    /**
+     * Whether the card [background] is drawn for stands on the lock screen
+     * rather than in the shade, as SystemUI's own state says: the shade pulled
+     * down over the lock screen holds its cards there no longer. Null where
+     * [background] is not in a card.
+     */
+    fun cardOnLockScreen(background: View): Boolean? {
+        var parent = background.parent
+        while (parent != null && !card.isInstance(parent)) parent = parent.parent
+        return parent?.let { cardOnKeyguard.getBoolean(it) }
+    }
+
+    /** Whether the notification [stackView] stands on the lock screen rather than in the shade; null where it cannot say. */
+    fun stackOnLockScreen(stackView: View): Boolean? =
+        if (stack.isInstance(stackView)) stackOnKeyguard.invoke(stackView) as? Boolean else null
+
     /** The eight corner radii a card's background is drawn with, as `Path.addRoundRect` takes them. */
     fun backgroundRadii(view: View): FloatArray? = cornerRadii.get(view) as FloatArray?
 
@@ -71,6 +92,8 @@ internal class LockScreenNotificationApi(classLoader: ClassLoader) {
 
     private companion object {
         const val BACKGROUND = "com.android.systemui.statusbar.notification.row.NotificationBackgroundView"
+        const val CARD = "com.android.systemui.statusbar.notification.row.ActivatableNotificationView"
+        const val STACK = "com.android.systemui.statusbar.notification.stack.NotificationStackScrollLayout"
         const val STACK_ELEMENTS = "com.android.systemui.keyguard.ui.composable.elements.NotificationStackElementProvider"
     }
 }

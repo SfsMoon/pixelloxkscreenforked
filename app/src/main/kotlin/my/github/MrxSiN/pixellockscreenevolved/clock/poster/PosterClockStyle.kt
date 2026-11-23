@@ -30,6 +30,7 @@ import my.github.MrxSiN.pixellockscreenevolved.clock.FaceSize
 import my.github.MrxSiN.pixellockscreenevolved.clock.FontSource
 import my.github.MrxSiN.pixellockscreenevolved.clock.FramedClockFace
 import my.github.MrxSiN.pixellockscreenevolved.clock.NotificationGlassFace
+import my.github.MrxSiN.pixellockscreenevolved.clock.parts.NotificationGlass
 import my.github.MrxSiN.pixellockscreenevolved.clock.parts.NotificationLook
 import my.github.MrxSiN.pixellockscreenevolved.clock.ResizableClockFace
 import my.github.MrxSiN.pixellockscreenevolved.clock.SmartspaceClockFace
@@ -116,7 +117,7 @@ class PosterClockStyle(private val font: PosterFont, private val fonts: FontSour
         private var notifications = NotificationLook()
         private var shownBackdrop: Backdrop? = null
 
-        override val notificationGlass: GlassLook? get() = notifications.glassBeside(glass)
+        override val notificationGlass: NotificationGlass? get() = notifications.glassBeside(glass)
 
         override val backdrop: Backdrop? get() = shownBackdrop
         private var datePlace = DatePlace.ABOVE

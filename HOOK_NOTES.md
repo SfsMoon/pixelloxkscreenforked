@@ -867,3 +867,5 @@ SystemUI's look and place.
 
 `lock_screen_notification_minimalism` (secure setting, SystemUI's own) tells
 compact notifications, a row of icons, from full ones; on unless set to 0.
+| `statusbar.notification.row.ActivatableNotificationView.mOnKeyguard` | Whether a card stands on the lock screen; in the shade pulled down over it, the card keeps SystemUI's background. |
+| `statusbar.notification.stack.NotificationStackScrollLayout.onKeyguard()` | Whether the stack stands on the lock screen; in the shade it is neither lifted nor turns the depth effect off. |

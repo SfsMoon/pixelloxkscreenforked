@@ -1,6 +1,6 @@
 package my.github.MrxSiN.pixellockscreenevolved.clock
 
-import my.github.MrxSiN.pixellockscreenevolved.clock.parts.GlassLook
+import my.github.MrxSiN.pixellockscreenevolved.clock.parts.NotificationGlass
 
 /**
  * A face that says how the lock screen's notifications are drawn beside it:
@@ -11,7 +11,7 @@ import my.github.MrxSiN.pixellockscreenevolved.clock.parts.GlassLook
 interface NotificationGlassFace : ClockFace {
 
     /** The glass notifications are drawn in beside this face, or null for SystemUI's own backgrounds. */
-    val notificationGlass: GlassLook?
+    val notificationGlass: NotificationGlass?
 
     /** The photo behind, as this face draws through it, or null where there is none. */
     val backdrop: Backdrop?

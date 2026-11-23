@@ -85,3 +85,28 @@ class GlassLookTest {
         assertEquals(null, GlassLook().with(PosterOptions.HOUR_KEY, 1))
     }
 }
+
+class NotificationLookTest {
+
+    private val clock = GlassLook()
+
+    @Test
+    fun everyNotificationSliderStartsAtTheDefaultLook() {
+        val start = my.github.MrxSiN.pixellockscreenevolved.clock.parts.NotificationLook.options
+            .fold(my.github.MrxSiN.pixellockscreenevolved.clock.parts.NotificationLook()) { look, option -> requireNotNull(look.with(option.key, option.defaultStep)) }
+        assertEquals(my.github.MrxSiN.pixellockscreenevolved.clock.parts.NotificationLook(), start)
+    }
+
+    @Test
+    fun stockNotificationsHaveNoGlass() {
+        val stock = my.github.MrxSiN.pixellockscreenevolved.clock.parts.NotificationLook(glass = false)
+        assertEquals(null, stock.glassBeside(clock))
+    }
+
+    @Test
+    fun aCardAlwaysKeepsSomeOfItsOwnColour() {
+        val clear = clock.copy(tint = 0f)
+        val glass = requireNotNull(my.github.MrxSiN.pixellockscreenevolved.clock.parts.NotificationLook().glassBeside(clear))
+        assert(glass.look.tint >= 0.3f)
+    }
+}

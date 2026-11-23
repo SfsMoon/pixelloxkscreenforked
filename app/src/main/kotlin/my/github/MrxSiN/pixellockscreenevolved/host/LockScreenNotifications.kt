@@ -21,6 +21,7 @@ import kotlin.math.abs
 
 import my.github.MrxSiN.pixellockscreenevolved.clock.Backdrop
 import my.github.MrxSiN.pixellockscreenevolved.clock.parts.GlassLook
+import my.github.MrxSiN.pixellockscreenevolved.clock.parts.NotificationGlass
 import my.github.MrxSiN.pixellockscreenevolved.clock.parts.LiquidGlass
 import my.github.MrxSiN.pixellockscreenevolved.core.Logger
 import my.github.MrxSiN.pixellockscreenevolved.hook.Hooks
@@ -72,7 +73,7 @@ internal class LockScreenNotifications(
         hooks.after(api.stackComposed) { element, _ ->
             runCatching {
                 val stack = api.stackOf(requireNotNull(element))
-                if (stack == null) status.skip("no stack view") else follow(stack)
+                if (stack == null) status.skip("no stack view") else follow(stack) { api.stackOnLockScreen(stack) != false }
             }.onFailure { status.failed("stack", it) }
         }
     }
@@ -81,6 +82,8 @@ internal class LockScreenNotifications(
     private fun drawGlass(api: LockScreenNotificationApi, view: View, canvas: Canvas): Boolean {
         if (!canvas.isHardwareAccelerated) return status.skip("software canvas")
         val face = ModuleClockFaces.notificationGlassIn(view.rootView) ?: return status.skip("no clock beside")
+        // In the shade, pulled down over the lock screen, the cards are SystemUI's own again.
+        if (api.cardOnLockScreen(view) == false) return status.skip("in the shade")
         val look = face.notificationGlass ?: return status.skip("stock chosen")
         val backdrop = face.backdrop ?: return status.skip("no photo")
         val card = cards.getOrPut(view) { CardGlass(view) }
@@ -92,14 +95,14 @@ internal class LockScreenNotifications(
     }
 
     /** Follows the lock screen's notification [stack] before each draw, once. */
-    private fun follow(stack: View) {
+    private fun follow(stack: View, onLockScreen: () -> Boolean) {
         if (!stacks.add(stack)) return
         status.followed++
         if (compact == null) {
             compact = COMPACT
             stack.context.contentResolver.let { resolver -> watchCompact(resolver) }
         }
-        BeforeEachDraw.follow(stack) { place(stack) }
+        BeforeEachDraw.follow(stack) { place(stack, onLockScreen()) }
     }
 
     private fun watchCompact(resolver: ContentResolver) {
@@ -110,8 +113,9 @@ internal class LockScreenNotifications(
     private val faceBounds = RectF()
 
     /** Lifts [stack] to stand right under the clock, and says whether full notifications stand on the lock screen. */
-    private fun place(stack: View) {
-        val face = ModuleClockFaces.notificationGlassIn(stack.rootView)?.view
+    private fun place(stack: View, onLockScreen: Boolean) {
+        // In the shade, pulled down over the lock screen, the stack is SystemUI's to place, and the depth effect's to keep.
+        val face = ModuleClockFaces.notificationGlassIn(stack.rootView)?.view?.takeIf { onLockScreen }
         val firstRow = firstRowTop(stack)
         val applied = lifted[stack] ?: 0f
         var wanted = 0f
@@ -160,8 +164,6 @@ internal class LockScreenNotifications(
         private val rim = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             style = Paint.Style.STROKE
             color = Color.WHITE
-            alpha = RIM_ALPHA
-            strokeWidth = view.resources.displayMetrics.density
         }
         private val shaped = RectF()
         private var shapedRadii: FloatArray? = null
@@ -188,7 +190,8 @@ internal class LockScreenNotifications(
             })
         }
 
-        fun draw(canvas: Canvas, radii: FloatArray?, look: GlassLook, backdrop: Backdrop): Boolean {
+        fun draw(canvas: Canvas, radii: FloatArray?, glass: NotificationGlass, backdrop: Backdrop): Boolean {
+            val look = glass.look
             val tint = cardColour(view)
             if (bounds != shaped || !radii.contentEquals(shapedRadii) || look != shapedLook || tint != shapedTint || !liquid.isReady) {
                 shaped.set(bounds)
@@ -214,7 +217,11 @@ internal class LockScreenNotifications(
             frostedToView.postConcat(sharpToView)
             frostedShader.setLocalMatrix(frostedToView)
             liquid.draw(canvas, path, sharpShader, frostedShader, 1f)
-            canvas.drawPath(path, rim)
+            if (glass.outline > 0f) {
+                rim.alpha = (glass.outline * 255).toInt()
+                rim.strokeWidth = glass.outlineWidthDp * view.resources.displayMetrics.density
+                canvas.drawPath(path, rim)
+            }
             return true
         }
 
@@ -300,7 +307,6 @@ internal class LockScreenNotifications(
         /** The size glass on a card is shaped for: its bevel and how far it bends what is behind. */
         const val REFERENCE_DP = 220f
 
-        const val RIM_ALPHA = 46
         val DARK_CARD = Color.rgb(24, 24, 28)
         val LIGHT_CARD = Color.rgb(246, 246, 250)
     }
