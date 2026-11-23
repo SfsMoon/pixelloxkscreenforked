@@ -18,12 +18,13 @@ import android.graphics.drawable.Drawable
  * - [Glyph.TAB]: Material Symbols "height" (a double arrow between two bars),
  *   the tab's icon.
  * - [Glyph.GLASS]: Material Symbols "water_drop", the Glass tab's icon.
+ * - [Glyph.BELL]: Material Symbols "notifications", the Notifications tab's icon.
  * - [Glyph.DRAG]: a fingertip with an arrow above and below, beside the hint
  *   that the clock is dragged up and down the preview ([PickerDragHint]).
  */
 internal class PositionIconDrawable(private val sizePx: Int, glyph: Glyph = Glyph.TAB) : Drawable() {
 
-    enum class Glyph { TAB, DRAG, GLASS }
+    enum class Glyph { TAB, DRAG, GLASS, BELL }
 
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.WHITE }
     private val path = Path().apply {
@@ -51,6 +52,29 @@ internal class PositionIconDrawable(private val sizePx: Int, glyph: Glyph = Glyp
                 rCubicTo(0f, 4.98f, 3.8f, 8.2f, 8f, 8.2f)
                 rCubicTo(4.2f, 0f, 8f, -3.22f, 8f, -8.2f)
                 rCubicTo(0f, -3.32f, -2.67f, -7.25f, -8f, -11.8f)
+                close()
+            }
+            Glyph.BELL -> {
+                // The bell, after Material Symbols "notifications".
+                moveTo(4f, 19f)
+                lineTo(4f, 17f)
+                lineTo(6f, 17f)
+                lineTo(6f, 10f)
+                cubicTo(6f, 7.2f, 7.8f, 4.8f, 10.5f, 4.2f)
+                lineTo(10.5f, 3.5f)
+                cubicTo(10.5f, 2.67f, 11.17f, 2f, 12f, 2f)
+                cubicTo(12.83f, 2f, 13.5f, 2.67f, 13.5f, 3.5f)
+                lineTo(13.5f, 4.2f)
+                cubicTo(16.2f, 4.8f, 18f, 7.2f, 18f, 10f)
+                lineTo(18f, 17f)
+                lineTo(20f, 17f)
+                lineTo(20f, 19f)
+                close()
+                // The clapper.
+                moveTo(12f, 22f)
+                cubicTo(10.9f, 22f, 10f, 21.1f, 10f, 20f)
+                lineTo(14f, 20f)
+                cubicTo(14f, 21.1f, 13.1f, 22f, 12f, 22f)
                 close()
             }
             Glyph.DRAG -> {

@@ -4,7 +4,7 @@ import my.github.MrxSiN.pixellockscreenevolved.clock.ClockOption
 
 /**
  * How the lock screen's notifications are drawn beside a clock drawn in glass,
- * as chosen in the clock sheet's Glass tab: on SystemUI's own backgrounds, or
+ * as chosen in the clock sheet's Notifications tab: on SystemUI's own backgrounds, or
  * as glass, the clock's own or a look of their own. Kept free of Android so it
  * can be unit tested.
  */
@@ -52,14 +52,14 @@ data class NotificationLook(
         /** The least of its own colour a card keeps. */
         private const val LEAST_TINT = 0.3f
 
-        /** The Glass tab's notification sliders. */
+        /** The Notifications tab's sliders. */
         val options: List<ClockOption> = listOf(
-            ClockOption(GLASS_KEY, "Notifications", listOf("Stock", "Glass"), 1, ClockOption.Tab.GLASS),
-            ClockOption(STYLE_KEY, "Notification look", listOf("Like clock", "Own"), 0, ClockOption.Tab.GLASS),
-            GlassLook.share(FROST_KEY, "Notification frost", OWN.frost),
-            GlassLook.share(REFRACTION_KEY, "Notification refraction", OWN.refraction),
-            GlassLook.share(HIGHLIGHTS_KEY, "Notification highlights", OWN.highlights),
-            GlassLook.share(TINT_KEY, "Notification tint", OWN.tint),
+            ClockOption(GLASS_KEY, "Notifications", listOf("Stock", "Glass"), 1, ClockOption.Tab.NOTIFICATIONS),
+            ClockOption(STYLE_KEY, "Notification look", listOf("Like clock", "Own"), 0, ClockOption.Tab.NOTIFICATIONS),
+            GlassLook.share(FROST_KEY, "Frost", OWN.frost, ClockOption.Tab.NOTIFICATIONS),
+            GlassLook.share(REFRACTION_KEY, "Refraction", OWN.refraction, ClockOption.Tab.NOTIFICATIONS),
+            GlassLook.share(HIGHLIGHTS_KEY, "Highlights", OWN.highlights, ClockOption.Tab.NOTIFICATIONS),
+            GlassLook.share(TINT_KEY, "Tint", OWN.tint, ClockOption.Tab.NOTIFICATIONS),
         )
     }
 }

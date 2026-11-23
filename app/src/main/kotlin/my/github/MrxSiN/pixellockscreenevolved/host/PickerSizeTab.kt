@@ -36,8 +36,8 @@ internal class PickerSizeTab(
     private val content: ViewGroup,
     private val rows: View,
     private val positionRows: View?,
-    /** The Glass tab's sliders, or null where there is no Glass tab. */
-    private val glassRows: View?,
+    /** The sliders of each tab of options this module adds, as Glass, where there are any. */
+    private val tabRows: Map<PickerClockState.SheetTab, View>,
     private val largeSwitch: CompoundButton?,
     private val sliders: PickerSliderApi,
     private val previewed: () -> ClockStyle?,
@@ -58,7 +58,7 @@ internal class PickerSizeTab(
     init {
         content.addView(rows, topParams())
         positionRows?.let { content.addView(it, topParams()) }
-        glassRows?.let { content.addView(it, topParams()) }
+        tabRows.values.forEach { content.addView(it, topParams()) }
         state.onTabChanged { showFor(previewed()) }
         content.viewTreeObserver.addOnGlobalLayoutListener {
             showFor(previewed())
@@ -82,7 +82,7 @@ internal class PickerSizeTab(
         originalRows.forEach { it.visibility = if (ours || tab != null) View.GONE else View.VISIBLE }
         rows.visibility = if (ours && tab == null) View.VISIBLE else View.GONE
         positionRows?.visibility = if (tab == PickerClockState.SheetTab.POSITION) View.VISIBLE else View.GONE
-        glassRows?.visibility = if (tab == PickerClockState.SheetTab.GLASS) View.VISIBLE else View.GONE
+        tabRows.forEach { (each, view) -> view.visibility = if (tab == each) View.VISIBLE else View.GONE }
         if (ours && largeSwitch?.isChecked == false) largeSwitch.isChecked = true
         onStyle(style)
         // Recorded now, before the picker selects the slot and animates the sheet to it: recorded at the
@@ -94,7 +94,7 @@ internal class PickerSizeTab(
     /** The rows [tab] shows, or null where this sheet has none for it. */
     private fun rowsOf(tab: PickerClockState.SheetTab): View? = when (tab) {
         PickerClockState.SheetTab.POSITION -> positionRows
-        PickerClockState.SheetTab.GLASS -> glassRows
+        else -> tabRows[tab]
     }
 
     /** Fades [leaving] out where it stands and [coming] in, as the picker fades its own tabs' content. */

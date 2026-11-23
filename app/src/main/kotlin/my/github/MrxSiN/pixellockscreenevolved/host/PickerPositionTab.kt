@@ -75,18 +75,20 @@ internal class PickerPositionTab(
             resubmit()
         }
 
-    /** Whether the clock previewed is drawn in glass; the Glass tab is listed only then. */
-    var isGlassAvailable = false
-        set(value) {
-            if (field == value) return
-            field = value
-            if (!value && state.openTab == PickerClockState.SheetTab.GLASS) state.openTab = null
-            resubmit()
-        }
+    /** The tabs of options, as Glass, the clock previewed has; each is listed only then. */
+    private val optionTabs = mutableSetOf<PickerClockState.SheetTab>()
+
+    /** Lists the tab of options [tab] where the clock previewed has some, or takes it away. */
+    fun setAvailable(tab: PickerClockState.SheetTab, available: Boolean) {
+        val changed = if (available) optionTabs.add(tab) else optionTabs.remove(tab)
+        if (!changed) return
+        if (!available && state.openTab == tab) state.openTab = null
+        resubmit()
+    }
 
     private fun isListed(tab: PickerClockState.SheetTab): Boolean = when (tab) {
         PickerClockState.SheetTab.POSITION -> isAvailable
-        PickerClockState.SheetTab.GLASS -> isGlassAvailable
+        else -> tab in optionTabs
     }
 
     fun install(hooks: Hooks) {
@@ -178,7 +180,11 @@ internal class PickerPositionTab(
         val built = tabs[tab] ?: run {
             val context = context.get() ?: return null
             val title = titleOf(tab)
-            val glyph = if (tab == PickerClockState.SheetTab.GLASS) PositionIconDrawable.Glyph.GLASS else PositionIconDrawable.Glyph.TAB
+            val glyph = when (tab) {
+                PickerClockState.SheetTab.POSITION -> PositionIconDrawable.Glyph.TAB
+                PickerClockState.SheetTab.GLASS -> PositionIconDrawable.Glyph.GLASS
+                PickerClockState.SheetTab.NOTIFICATIONS -> PositionIconDrawable.Glyph.BELL
+            }
             val icon = api.loadedIcon(PositionIconDrawable(PickerRows.dp(context, ICON_DP), glyph), title) ?: return null
             (api.tab(icon, title, false, function { open(tab) }) to api.tab(icon, title, true, null)).also { tabs[tab] = it }
         }
@@ -188,6 +194,7 @@ internal class PickerPositionTab(
     private fun titleOf(tab: PickerClockState.SheetTab): String = when (tab) {
         PickerClockState.SheetTab.POSITION -> TITLE
         PickerClockState.SheetTab.GLASS -> GLASS_TITLE
+        PickerClockState.SheetTab.NOTIFICATIONS -> NOTIFICATIONS_TITLE
     }
 
     /**
@@ -305,6 +312,7 @@ internal class PickerPositionTab(
     private companion object {
         const val TITLE = "Position"
         const val GLASS_TITLE = "Glass"
+        const val NOTIFICATIONS_TITLE = "Notifications"
         const val ICON_DP = 24f
         const val SIZE = "SIZE"
         const val TAB_LIST = "tab_list"

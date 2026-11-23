@@ -60,32 +60,41 @@ internal class LockScreenNotifications(
             logger.warn("Lock screen notifications not found; they keep SystemUI's look and place", error)
             return
         }
+        // A failure here is caught and told in the status, rather than counted against the feature: the
+        // feature stopped as faulty took the glass, the lift and the depth effect's rule with it.
         hooks.replaceArguments(api.backgroundDraw) { background, args ->
             val view = background as? View ?: return@replaceArguments args
             val canvas = args.firstOrNull() as? Canvas ?: return@replaceArguments args
             // Drawn here as glass, SystemUI's own background is drawn into nothing.
-            if (drawGlass(api, view, canvas)) listOf(NOTHING) else args
+            val glass = runCatching { drawGlass(api, view, canvas) }.onFailure { status.failed("glass", it) }.getOrDefault(false)
+            if (glass) listOf(NOTHING) else args
         }
         hooks.after(api.stackComposed) { element, _ ->
-            api.stackOf(requireNotNull(element))?.let(::follow)
+            runCatching {
+                val stack = api.stackOf(requireNotNull(element))
+                if (stack == null) status.skip("no stack view") else follow(stack)
+            }.onFailure { status.failed("stack", it) }
         }
     }
 
     /** Draws [view]'s card as glass into [canvas], where the clock beside it asks; false to leave it to SystemUI. */
     private fun drawGlass(api: LockScreenNotificationApi, view: View, canvas: Canvas): Boolean {
-        if (!canvas.isHardwareAccelerated) return false
-        val face = ModuleClockFaces.notificationGlassIn(view.rootView) ?: return false
-        val look = face.notificationGlass ?: return false
-        val backdrop = face.backdrop ?: return false
+        if (!canvas.isHardwareAccelerated) return status.skip("software canvas")
+        val face = ModuleClockFaces.notificationGlassIn(view.rootView) ?: return status.skip("no clock beside")
+        val look = face.notificationGlass ?: return status.skip("stock chosen")
+        val backdrop = face.backdrop ?: return status.skip("no photo")
         val card = cards.getOrPut(view) { CardGlass(view) }
         val bounds = card.bounds
-        if (!api.backgroundBounds(view, bounds)) return false
-        return card.draw(canvas, api.backgroundRadii(view), look, backdrop)
+        if (!api.backgroundBounds(view, bounds)) return status.skip("empty card")
+        if (!card.draw(canvas, api.backgroundRadii(view), look, backdrop)) return status.skip("photo not placed")
+        status.drew(view.context.contentResolver)
+        return true
     }
 
     /** Follows the lock screen's notification [stack] before each draw, once. */
     private fun follow(stack: View) {
         if (!stacks.add(stack)) return
+        status.followed++
         if (compact == null) {
             compact = COMPACT
             stack.context.contentResolver.let { resolver -> watchCompact(resolver) }
@@ -121,6 +130,7 @@ internal class LockScreenNotifications(
             shown = nowShown
             face?.invalidate()
         }
+        status.placed(stack.context.contentResolver, face != null, firstRow != null, wanted, compactNow, nowShown)
     }
 
     /** The top, in window pixels, of the highest card [stack] shows, or null where it shows none. */
@@ -215,7 +225,59 @@ internal class LockScreenNotifications(
         }
     }
 
+    /**
+     * What the feature did lately, written at most once a second to a secure
+     * setting, [STATUS_SETTING], for whoever follows it where the module's log
+     * does not reach logcat: `settings get secure pixel_lock_screen_evolved_notifications_status`.
+     */
+    private class Status {
+        var followed = 0
+        private var drawn = 0
+        private var skipped = 0
+        private var lastSkip = "none"
+        private var failure = "none"
+        private var lift = "never placed"
+        private var writtenAt = 0L
+
+        fun skip(reason: String): Boolean {
+            skipped++
+            lastSkip = reason
+            return false
+        }
+
+        fun drew(resolver: ContentResolver) {
+            drawn++
+            write(resolver)
+        }
+
+        fun failed(where: String, error: Throwable) {
+            failure = "$where: ${error.javaClass.simpleName}: ${error.message}"
+        }
+
+        fun placed(resolver: ContentResolver, clock: Boolean, rows: Boolean, lifted: Float, compact: Boolean, cardsShown: Boolean) {
+            lift = "clock=$clock rows=$rows lifted=${lifted.toInt()}px compact=$compact depthOff=$cardsShown"
+            write(resolver)
+        }
+
+        private fun write(resolver: ContentResolver) {
+            val now = System.currentTimeMillis()
+            if (now - writtenAt < WRITE_EVERY_MS) return
+            writtenAt = now
+            runCatching {
+                android.provider.Settings.Secure.putString(
+                    resolver, STATUS_SETTING,
+                    "stacks=$followed drawn=$drawn skipped=$skipped lastSkip=$lastSkip | $lift | failure=$failure",
+                )
+            }
+        }
+    }
+
+    private val status = Status()
+
     companion object {
+        private const val STATUS_SETTING = "pixel_lock_screen_evolved_notifications_status"
+        private const val WRITE_EVERY_MS = 1000L
+
         /** Whether full notifications stand on the lock screen beside a clock of this module's; read before each frame. */
         @Volatile
         var shown: Boolean = false
@@ -228,7 +290,7 @@ internal class LockScreenNotifications(
         private val NOTHING = Canvas()
 
         /** Space between the clock and the first card. */
-        const val GAP_DP = 12f
+        const val GAP_DP = 4f
 
         /** The most the stack is lifted, against the window's height. */
         const val MOST_LIFT_SHARE = 0.5f

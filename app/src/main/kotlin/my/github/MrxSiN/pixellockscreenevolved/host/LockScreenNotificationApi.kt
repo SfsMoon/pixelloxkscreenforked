@@ -58,8 +58,16 @@ internal class LockScreenNotificationApi(classLoader: ClassLoader) {
     /** The eight corner radii a card's background is drawn with, as `Path.addRoundRect` takes them. */
     fun backgroundRadii(view: View): FloatArray? = cornerRadii.get(view) as FloatArray?
 
-    /** The stack view the element composed by [composedElement] hosts, or null. */
-    fun stackOf(composedElement: Any): View? = elementProvider.get(composedElement)?.let { stackView.get(it) } as View?
+    /**
+     * The stack view the element composed by [composedElement] hosts, or null.
+     * SystemUI may hold it lazily, behind a `dagger.Lazy` or a
+     * `javax.inject.Provider`; either is asked for it.
+     */
+    fun stackOf(composedElement: Any): View? {
+        val held = elementProvider.get(composedElement)?.let { stackView.get(it) } ?: return null
+        if (held is View) return held
+        return runCatching { held.javaClass.getMethod("get").invoke(held) }.getOrNull() as? View
+    }
 
     private companion object {
         const val BACKGROUND = "com.android.systemui.statusbar.notification.row.NotificationBackgroundView"

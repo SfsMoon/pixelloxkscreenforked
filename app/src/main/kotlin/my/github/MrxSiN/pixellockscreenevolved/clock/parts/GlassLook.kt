@@ -80,9 +80,9 @@ data class GlassLook(
         /** The 0 to 1 share a step of a glass slider stands for. */
         fun share(step: Int): Float = step.coerceIn(0, STEPS - 1) / (STEPS - 1f)
 
-        /** A glass slider of eleven stops in the Glass tab, from 0% to 100%, starting at [initial]. */
-        fun share(key: String, label: String, initial: Float) = ClockOption(
-            key, label, List(STEPS) { "${it * 10}%" }, (initial * (STEPS - 1)).roundToInt(), ClockOption.Tab.GLASS,
+        /** A slider of eleven stops in [tab], from 0% to 100%, starting at [initial]. */
+        fun share(key: String, label: String, initial: Float, tab: ClockOption.Tab = ClockOption.Tab.GLASS) = ClockOption(
+            key, label, List(STEPS) { "${it * 10}%" }, (initial * (STEPS - 1)).roundToInt(), tab,
         )
     }
 }

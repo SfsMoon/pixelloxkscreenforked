@@ -98,6 +98,17 @@
 
 ### Fixed
 
+- Glass notifications, the lifted stack and the depth effect's rule beside
+  notifications worked now and then: a failure in their hooks, as the stack
+  held lazily behind a provider, counted against the feature until it was
+  stopped. The stack is now unwrapped from a `dagger.Lazy` or
+  `javax.inject.Provider`, failures are caught and told, and what the feature
+  does is written to `pixel_lock_screen_evolved_notifications_status`, a
+  secure setting, where the module's log does not reach logcat. The stack
+  stands 4 dp under the clock.
+- Notification options moved to a Notifications tab of their own
+  (`ClockOption.Tab.NOTIFICATIONS`); the tabs this module adds are listed
+  from the options each clock has.
 - Notifications under a clock of this module's stood as low as if SystemUI's
   date row and smartspace card were still there: hidden, both were invisible
   and kept their room in the scene, which lays them out above the clock. Both

@@ -30,6 +30,9 @@ data class ClockOption(
 
         /** A tab of its own for how glass is drawn. */
         GLASS,
+
+        /** A tab of its own for the lock screen's notifications beside the clock. */
+        NOTIFICATIONS,
     }
 
     init {

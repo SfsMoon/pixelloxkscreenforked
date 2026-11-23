@@ -138,7 +138,18 @@ internal class PickerClockState(private val api: ClockPluginApi) {
     fun shownPosition(): ClockPosition = chosenPosition ?: storedPosition()
 
     /** The tabs this module adds to the clock sheet, riding on its Size tab's slot ([PickerPositionTab]). */
-    enum class SheetTab { POSITION, GLASS }
+    enum class SheetTab {
+        POSITION, GLASS, NOTIFICATIONS;
+
+        companion object {
+            /** The tab an option shown outside the Size tab is in, or null for the Size tab. */
+            fun of(tab: ClockOption.Tab): SheetTab? = when (tab) {
+                ClockOption.Tab.SIZE -> null
+                ClockOption.Tab.GLASS -> GLASS
+                ClockOption.Tab.NOTIFICATIONS -> NOTIFICATIONS
+            }
+        }
+    }
 
     /** Which of this module's tabs is open, or null while the picker's own are; [onTabChanged] hears each change. */
     @Volatile
